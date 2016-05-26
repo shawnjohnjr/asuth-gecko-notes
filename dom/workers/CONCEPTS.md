@@ -8,6 +8,8 @@ Life-cycle management construct for workers:
   explicitly defined enum in WorkerFeature.h with Pending/Running/Dead being the
   straightforward singleton states and Closing/Terminating/Canceling/Killing
   covering the "gonna shutdown" with the why baked in.
+  * True is expected success return value.  Return value of false results in an
+    NS_WARNING, otherwise unchecked.
 
 ## WorkerRunnable ##
 
@@ -19,7 +21,8 @@ for subclasses.  Also, subclass variants:
 * WorkerSyncRunnable:
 
 ## BusyCount ##
-Used to stop the worker thread from prematurely canceling.  Tracked on WorkerPrivateParent<Derived> (in the parent thread), directly manipulated by
+Used to stop the worker thread from prematurely canceling.  Tracked on
+WorkerPrivateParent<Derived> (in the parent thread), directly manipulated by
 ModifyBusyCount.  When it hits zero, the parent's status is checked against
 Terminating and if it is, a Cancel() is fired.
 
@@ -31,3 +34,5 @@ up-to-date.  Example uses:
   as there are any child workers.
 * Each feature contributes a busy count of 1.
 * The presence of an active timer contributes a busy count of 1.
+
+## Garbage Collection ##

@@ -159,6 +159,9 @@ Sources:
     * Q: The involvement of ReadStream here seems odd unless something smarter
       happens in the same-process case; does that happen?  Where?  If not, it's
       probably planned to happen.  What's the bug?
+  * (prior to calling OnOpComplete, StreamList::Activate gets invoked which
+     causes it to AddRefCacheId and AddStreamList and AddRefBodyId on the
+     Manager which helps keep it alive.)
   * OnOpComplete does Send__delete() invoking SendAsOpResult() on the auto
     result (per the protocol where the cache op deletes with the result).  It
     mainly just invokes TakeValue on everything in the cleanup list.

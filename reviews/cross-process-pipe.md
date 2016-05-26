@@ -1,39 +1,39 @@
 ## File Checklist ##
 
-* [ ] AutoUtils.cpp
-* [ ] AutoUtils.h
-* [ ] Cache.cpp
+* [x] AutoUtils.cpp
+* [x] AutoUtils.h
+* [x] Cache.cpp
 * [x] Cache.h
-* [ ] CacheChild.cpp
+* [x] CacheChild.cpp
 * [x] CacheChild.h
-* [ ] CacheOpChild.cpp
-* [ ] CacheOpChild.h
-* [ ] CacheOpParent.cpp
-* [ ] CacheParent.cpp
-* [ ] CacheParent.h
-* [ ] CachePushStreamChild.cpp
-* [ ] CachePushStreamChild.h
-* [ ] CachePushStreamParent.cpp
-* [ ] CachePushStreamParent.h
-* [ ] CacheStorage.cpp
-* [ ] CacheStorage.h
-* [ ] CacheStreamControlChild.cpp
-* [ ] CacheStreamControlChild.h
-* [ ] CacheStreamControlParent.cpp
-* [ ] CacheStreamControlParent.h
-* [ ] CacheTypes.ipdlh
-* [ ] DBSchema.cpp
-* [ ] ManagerId.cpp
-* [ ] PCache.ipdl
-* [ ] PCacheOp.ipdl
-* [ ] PCachePushStream.ipdl
-* [ ] PCacheStorage.ipdl
-* [ ] ReadStream.cpp
-* [ ] ReadStream.h
-* [ ] StreamControl.h
-* [ ] TypeUtils.cpp
-* [ ] TypeUtils.h
-* [ ] moz.build
+* [x] CacheOpChild.cpp
+* [x] CacheOpChild.h
+* [x] CacheOpParent.cpp
+* [x] CacheParent.cpp
+* [x] CacheParent.h
+* [x] CachePushStreamChild.cpp
+* [x] CachePushStreamChild.h
+* [x] CachePushStreamParent.cpp
+* [x] CachePushStreamParent.h
+* [x] CacheStorage.cpp
+* [x] CacheStorage.h
+* [x] CacheStreamControlChild.cpp
+* [x] CacheStreamControlChild.h
+* [x] CacheStreamControlParent.cpp
+* [x] CacheStreamControlParent.h
+* [x] CacheTypes.ipdlh
+* [x] DBSchema.cpp
+* [x] ManagerId.cpp
+* [x] PCache.ipdl
+* [x] PCacheOp.ipdl
+* [x] PCachePushStream.ipdl
+* [x] PCacheStorage.ipdl
+* [x] ReadStream.cpp
+* [x] ReadStream.h
+* [x] StreamControl.h
+* [x] TypeUtils.cpp
+* [x] TypeUtils.h
+* [x] moz.build
 
 ## High Level ##
 
@@ -45,7 +45,8 @@ is not immediately available.  Nicely documented in SendStream.h.
 Only allowed to create on main thread or worker thread for life-cycle reasons.
 There's a comment in SendStream.h that is slightly misleading.  The actor's
 life is inherently circumscribed by that of its thread, but the problem is the
-associated stream can absolutely outlive the actor.  https://bugzilla.mozilla.org/show_bug.cgi?id=1093357#c35https://bugzilla.mozilla.org/show_bug.cgi?id=1093357#c35 describes this well.
+associated stream can absolutely outlive the actor.
+https://bugzilla.mozilla.org/show_bug.cgi?id=1093357#c35 describes this well.
 And since the death of the thread inherently closes the parent actor, this means
 that no matter what type of factoring games you play with referenced objects,
 we will no longer be able to send any data to the parent once the thread dies.
