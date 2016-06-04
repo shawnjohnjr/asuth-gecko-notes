@@ -39,9 +39,9 @@
     * mode is "no-cors"
   * Network error if:
     * Scheme is not http/https.  (We already handled data/about/websockets.)
-  * HTTP fetch using { CORS, CORS-preflight }, with "cors" response tainting and
-    "error" redirect mode, and clearing matching cache entries if there was an
-    error (presumably for security/privacy reasons.) IF:
+  * HTTP fetch using { CORS, CORS-preflight }, with "cors" response tainting
+    and "error" redirect mode, and clearing matching cache entries if there was
+    an error (presumably for security/privacy reasons.) IF:
     * TODO
   * HTTP fetch with { CORS }, "cors" response tainting
 (response processing)
@@ -89,7 +89,7 @@ Dispatch based on scheme:
     2. Branch on redirect mode.
       * "error" => set response to a network error, will turn into a rejection
       * "manual" => save off the redirect in an opaqueredirect.
-      * "follow" => yeah, redirect.  Run HTTP-redirect fetch.
+      * "follow" => yeah, redirect.  Run HTTP-redirect fetch propagating CORS.
   * 401 (Unauthorized): Return the response unless: this isn't CORS, we're
     associated with a window, and credentials mode is "include": in which case
     we should prompt the user and re-run HTTP fetch with the credentials (and
@@ -124,20 +124,27 @@ Dispatch based on scheme:
 13. If this was a POST and we got a 301, 302, or 303, switch to GET and nuke
     the request body.
 14. Append the new location to the request's url list.
-15. Invoke main fetch with { CORS, recursive }.  (The note says it goes via
-    main fetch for response tainting purposes.)
+15. Invoke main fetch propagating CORS and setting recursive.  (The note says it
+    goes via main fetch for response tainting purposes.)
 
 ## 5.5 HTTP-network-or-cache fetch ##
 
 1. Possibly clone the request so we can mess with it.
 (3-14: build up the headers)
 16. Check the cache for complete responses, possibly using it.
+  1. If "force-cache"/"only-if-cached" use the response, don't do revalidation
+     stuff.
+  2. If "default" and the cache is fresh, use the response, and set the
+     internal-only not-really-used-by-the-spec cache state to "local".
+  3. Otherwise if "default"/"no-cache", modify the http request with
+     revalidation headers (and don't set `response`).
 17. Check the cache for partial responses, and if cache mode is "default" or
-    "force-cache", modify the request to have resume headers
-18. Still no response?
+    "force-cache", modify the http request to have resume headers
+18. Still no `response`?
   1. Bail if "only-if-cached", returning a network error that will become a
      rejection.
-  2. Run HTTP-network fetch propagating the credentials flag.
+  2. Run *5.6 HTTP-network fetch* propagating the credentials flag, this can be
+     either a from-scratch fetch or a revalidation or resume fetch.
 19. Handle 304 not modified if "default"/"no-cache":
   1. Pull out the cached response.
   2. Explode with network error if there wasn't one.
