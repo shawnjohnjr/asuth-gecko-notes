@@ -36,11 +36,20 @@ clearly moot.)
 Total Ordering based on the "storage" numbers:
 * Version -2: Only IndexedDB existed, everything lived under profile/indexedDB,
   with the IDB files sitting directly in the origin directories.
-* Version -1: "storage/{persistent,temporary}"
+* Version -1: "storage/{persistent,temporary}", .metadata files existed but may
+  not have included the isApp boolean on the end.  (Actually, maybe the isApp
+  thing happened at another time.  Doesn't really matter.)
 * Version 0: "storage/{permanent,default,temporary}" w/.metadata files
 * Version 1:
 
 "Metadata":
+* Version 1: .metadata: [uint64_t timestamp, Cstring group, Cstring origin,
+  bool isApp] where group and origin have what is now referred to as the
+  "jar prefix" crammed on the front.
+* Version 2: .metadata-v2: [(u)int64_t timestamp, bool false (reserved for
+  navigator.persist()), reserved data 1: 32bit 0, reserved data 2: 32bit 0,
+  Cstring suffix, Cstring group, Cstring origin, bool isApp]. As indicated by
+  the suffix, the origin
 
 "Storage":
 * Version 0: (anything before version 1)
@@ -98,11 +107,21 @@ methods are called multiple times and I need the columns.
     detected in the parse, a fresh POA with explicit (mAppId,
     mInIsolatedBrowser) is returned, otherwise the original one provided by
     POA's PopulateFromOrigin is propagated.
-  * If not persistent (???), calls GetDirectoryMetadataGetDirectoryMetadata to
-    check the .metadata file.  If it did not exist, GetLastModifiedTime is used
+  * If (!mPersistent), calls GetDirectoryMetadataGetDirectoryMetadata to check
+    the .metadata file.  (The !mPersistent check is because the call to
+    MaybeUpgradeOriginDirectory above already interpreted the lack of a
+    .metadata file as a need to do something and touched it into existence if it
+    did not exist.  Similarly, in our DoProcessOriginDirectories method,
+    mPersistent again gets a special-case which will 100% invoke
+    CreateDirectoryMetadata.)  If it did not exist, GetLastModifiedTime is used
     to set the originProps mTimestamp and mNeedsRestore is flagged.  If it did
     exist and the .metadata file was long enough to include the isApp boolean,
-    then mIgnore is set.
+    then mIgnore is set.  (If not set, we try and append the flag into
+    existence.)
+  * elif !IsOriginWhitelistedForPersistentStorage (and possibly mPersistent,
+    which would be the case for something that was in persistent but is soon
+    ending up in default), GetLastModifiedTime is used to set the mTimestamp to
+    use as the atime.
 
 
 * CreateOrUpgradeDirectoryMetadataHelper::MaybeUpgradeOriginDirectory:
@@ -130,15 +149,21 @@ methods are called multiple times and I need the columns.
 
 * CreateOrUpgradeDirectoryMetadataHelper::DoProcessOriginDirectories:
   * Iterates over the originProps.
-  * If persistent (only persistent/temporary existed in the being-upgraded
-    scheme) and IsOriginWhitelistedForPersistentStorage() returns true, move
-    the directory to the new "permanent" dir (which we may need to create).
-    If the target directory already existed, QM_WARNING and delete the source
-    directory, thereby favoring the already-upgraded target.  (This happened
-    if the user had been jumping around between Gecko versions.)
+  * If (mPersistent) (only persistent/temporary existed in the being-upgraded
+    scheme), CreateDirectoryMetadata() for sure.  This is important because if
+    the file didn't exist, MaybeUpgradeOriginDirectory only touched .metadata,
+    it didn't populate it.
+    * If IsOriginWhitelistedForPersistentStorage() returns true, move
+      the directory to the new "permanent" dir (which we may need to create).
+      If the target directory already existed, QM_WARNING and delete the source
+      directory, thereby favoring the already-upgraded target.  (This happened
+      if the user had been jumping around between Gecko versions.)
   * Elif (not persistent and) we had marked it mNeedsRestore because the
-    .metadata file did not exist, creat it using what's in originProps.  So the
-    last modified time has become our last access time,
+    .metadata file did not exist, create it using what's in originProps.  So the
+    last modified time has become our last access time, and all the origin data
+    is from the directory name inference we did.
+  * Elif !mIgnore, open the .metadata file and append mIsApp.  (mIgnore was set
+    if the isApp bool was already present.)
 
 * QuotaManager::MaybeRemoveOldDirectories: (called by
   QuotaManager::EnsureStorageIsInitialized)
