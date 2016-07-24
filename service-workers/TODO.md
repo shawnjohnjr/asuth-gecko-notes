@@ -1,5 +1,26 @@
 ====
 
+## e10s
+
+### Work Distribution
+
+Me:
+* bug 1231213: allow service worker manager to spawn and hold open a content process
+* bug 1231216: allow service worker manager to dispatch an event to a worker in remote child process
+Josh
+* bug 1231222: perform service worker interception in parent process nsHttpChannel
+Andrea:
+* bug 1231211: separate service worker controller from docshell
+* Bug 1231218: replace nsIDocument in service worker manager with a client interface
+
+### Understandings
+
+See e10s-effort/
+
+### Original Early Bootstrap Discussion
+
+* bug 1182117: Move ServiceWorkerManager to the parent process in e10s
+
 Create WorkerPrivate in another process and hold it alive with a PBackground.
 * SWM doesn't have to use it to start with.
 * Create infrastructure, write test that let's you do that
@@ -16,11 +37,11 @@ Expecting Josh to do:
 * Also move paths to e10s code-paths in necko.
 
 * Splitting out docshell can conflict with Josh.
-*
 
-OTHER THINGS TO DO.
 
-=== Right now: https://github.com/whatwg/fetch/issues/266
+
+
+## No longer deferred: https://github.com/whatwg/fetch/issues/266
 
 Next step:
 * Understand the mapping of the spec algorithm onto how it's actually

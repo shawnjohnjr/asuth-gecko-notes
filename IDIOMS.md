@@ -1,0 +1,7 @@
+## Thread Safety ##
+
+### NS_ASSERT_OWNINGTHREAD ##
+
+From nsISupportsImpl.h:
+* NS_DECL_OWNINGTHREAD
+* NS_ASSERT_OWNINGTHREAD

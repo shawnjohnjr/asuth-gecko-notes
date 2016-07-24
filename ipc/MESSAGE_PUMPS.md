@@ -1,3 +1,5 @@
+Note: I think these notes pre-date the unification khuey did.
+
 ## MessagePump ##
 
 base::MessagePumpDefault (with well-documented logic in base::MessagePump's

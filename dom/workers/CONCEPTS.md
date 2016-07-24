@@ -1,11 +1,11 @@
-## Features ##
+## Holders (formerly the poorly named Features) ##
 
 Life-cycle management construct for workers:
 * Keeps worker/event loop alive (in WorkerPrivate::DoRunLoop) by having
-  HasActiveFeatures() return true.
-* Worker features get Notify(status) invoked on them when status changes due
-  to calls to WorkerPrivate::NotifyFeatures/NotifyInternal.  Status is
-  explicitly defined enum in WorkerFeature.h with Pending/Running/Dead being the
+  HasActiveHolders() return true.
+* Worker holders get Notify(status) invoked on them when status changes due
+  to calls to WorkerPrivate::NotifyHolders/NotifyInternal.  Status is
+  explicitly defined enum in WorkerHolder.h with Pending/Running/Dead being the
   straightforward singleton states and Closing/Terminating/Canceling/Killing
   covering the "gonna shutdown" with the why baked in.
   * True is expected success return value.  Return value of false results in an
