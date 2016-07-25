@@ -36,7 +36,7 @@ InterceptedChannel
     * Intercept if either mPostRedirectChannelShouldIntercept (explicitly set
       via **ForceIntercepted**) or ShouldInterceptURI
 
-## Josh's Interception changes, bug 1231222
+## Josh's Interception changes, bug 1231222 ##
 
 ### Detailed breakdown:
 

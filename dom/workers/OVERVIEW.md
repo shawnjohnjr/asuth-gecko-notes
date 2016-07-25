@@ -1,3 +1,9 @@
+# ServiceWorker Stuff #
+
+## Participants ##
+
+
+
 ## Registrations ##
 
 ServiceWorkerRegistrar keeps registrations in newline-delimited
