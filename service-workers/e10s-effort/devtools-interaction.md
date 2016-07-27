@@ -17,6 +17,8 @@ Actor API consumption:
 With the server bits being:
 * devtools/server/actors/webbrowser.js (parent process):
   * WorkerActorList from ./worker.js
-    * slurped out of nsIWorkerDebuggerManager
+    * confusion: slurped out of nsIWorkerDebuggerManager, but this does not
+      expose the entirety of the set of workers known to the RuntimeService,
+      just those with registered debuggers?  I think...
   * ServiceWorkerRegistrationActorList from ./worker.js
     * slurped out of nsIServiceWorkerManager

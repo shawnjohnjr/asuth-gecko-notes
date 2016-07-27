@@ -1,12 +1,3 @@
-PENDING INVESTIGATION:
-* How does e10s Firefox potentially ask for an additional ContentParent to be
-  created?  The RecvNewWindow path implies touchability (that's what
-  SetHasContentOpener means, right?), so it wouldn't want/need some type of
-  clever origin allocation.  It's likely it's a higher level browser thing and
-  that tabbrowser.xml or something is involved.
-  * Possibly trace the number of content processes pref and getters, since pure
-    JS logic would want that.
-
 ## Impl Hierarchy Relevance ##
 
 ? GeckoChildProcessHost

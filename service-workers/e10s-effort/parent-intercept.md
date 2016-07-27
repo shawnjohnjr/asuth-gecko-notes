@@ -38,6 +38,11 @@ InterceptedChannel
 
 ## Josh's Interception changes, bug 1231222 ##
 
+### Overview ###
+
+* ServiceWorkerRegistrarParent is introduced as a main-thread repository of
+  registration data so that it can be synchronously consulted (IsAvailable).
+
 ### Detailed breakdown:
 
 Tracking controlled documents in the parent:

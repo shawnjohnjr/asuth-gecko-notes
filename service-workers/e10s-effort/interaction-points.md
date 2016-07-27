@@ -94,7 +94,24 @@ Shared Workers:  They already use a message port under the hood! Woo!!!
 
 Shared Workers:
 
-### Design Options and Trade-Offs ###
+## Interception ##
+
+Because channels are opened on the main thread, .
+
+## ServiceWorkers ##
+
+Error logging.  SWM currently maintains an interest in:
+* Controlled documents
+* Registering documents
+* Navigation interceptions
+
+## SharedWorkers ##
+
+SharedWorkers are not magic.  They are newed via their WebIDL binding which
+invokes SharedWorker.cpp's static SharedWorker::Constructor.  It in turn uses
+RuntimeService::CreateSharedWorker
+
+## Design Options and Trade-Offs ##
 
 #### Proposal
 
@@ -133,11 +150,3 @@ Service Workers:
   * Clients inherently known.
 
 ### Possible Remote-Awareness Options ###
-
-
-
-## SharedWorkers ##
-
-SharedWorkers are not magic.  They are newed via their WebIDL binding which
-invokes SharedWorker.cpp's static SharedWorker::Constructor.  It in turn uses
-RuntimeService::CreateSharedWorker
