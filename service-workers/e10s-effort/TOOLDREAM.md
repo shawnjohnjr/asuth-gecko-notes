@@ -1,3 +1,26 @@
+## Overviews of State w/Multiprocess Linkage ##
+
+Use GDB to dump JSON representations of core/interesting state with the ability
+to link identifiers between processes.
+
+### Interesting Roots ###
+
+ContentParent:
+* nsDataHashtable<nsStringHashKey, ContentParent*>* sAppContentParents;
+* nsTArray<ContentParent*>* sNonAppContentParents;
+* nsTArray<ContentParent*>* sPrivateContent;
+* StaticAutoPtr<LinkedList<ContentParent> > sContentParents;
+`p *('mozilla::dom::ContentParent'::sContentParents.mRawPtr)`
+
+`p *(ContentParent *)mozilla::dom::ContentParent::sContentParents.mRawPtr->sentinel->mNext`
+
+`p ((ContentParent *)mozilla::dom::ContentParent::sContentParents.mRawPtr->sentinel->mNext)->mManagedPPresentationParent`
+
+`p *(('mozilla::dom::ContentParent' *)'mozilla::dom::ContentParent'::sContentParents.mRawPtr->sentinel->mNext)`
+
+`p (('mozilla::dom::ContentParent' *)'mozilla::dom::ContentParent'::sContentParents.mRawPtr->sentinel->mNext)->mManagedPScreenManagerParent`
+
+
 ## Understanding IPC/Channel Flow ##
 
 Trace the flows of fetch(x) leading to http channel X, intercept channel X,

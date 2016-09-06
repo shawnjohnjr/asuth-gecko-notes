@@ -94,9 +94,9 @@ Shared Workers:  They already use a message port under the hood! Woo!!!
 
 Shared Workers:
 
-## Interception ##
+## Interception / Fetch ##
 
-Because channels are opened on the main thread, .
+See parent-intercept.md
 
 ## ServiceWorkers ##
 
@@ -104,6 +104,31 @@ Error logging.  SWM currently maintains an interest in:
 * Controlled documents
 * Registering documents
 * Navigation interceptions
+
+### Clients ###
+
+SWM::GetAllClients uses the observer service topic "service-worker-get-client".
+If including uncontrolled, It gets an enumerator that
+
+### Live Updating Bindings / Events ###
+
+ServiceWorker state machine c
+
+* ServiceWorker
+  * ServiceWorkerState "state"
+  * event "statechange"
+* ServiceWorkerRegistration
+  * ServiceWorker? installing
+  * ServiceWorker? waiting
+  * ServiceWorker? active
+  * event "updatefound"
+* ServiceWorkerContainer (Exposed on Navigator/WorkerNavigator)
+  * ServiceWorker? controller
+  * Promise<ServiceWorkerRegistration> ready: resolves when there's an
+    applicable registration and its worker has moved to the active state.
+  * event "controllerchange"
+
+*
 
 ## SharedWorkers ##
 

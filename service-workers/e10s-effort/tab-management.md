@@ -6,7 +6,8 @@
 Parent process singleton responsible for book-keeping of:
 * ContentParent instances keyed by ContentParentId
 * Their known tabs (keyed by TabId) and their RemoteFrameInfo as value (opener
-  TabId, plus TabContext)
+  TabId, plus TabContext).  Where TabParent inherits from TabContext, so this
+  can be the TabParent.
 
 ### ContentParent ###
 inherits from:

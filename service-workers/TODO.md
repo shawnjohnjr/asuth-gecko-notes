@@ -2,6 +2,15 @@
 
 ## e10s
 
+### e10s team meeting action items
+
+#### 8/23
+
+* I, asuth, will investigate and then file a bug on the potential push
+  notification broadcast happening.  (Since I think it may be flooding the
+  notification.)
+
+
 ### Work Distribution
 
 Me:
