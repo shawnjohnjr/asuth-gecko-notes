@@ -46,7 +46,19 @@ docshell type, etc.
 Note that the ContentParent's ContentParentId is exposed on it as its
 ChildID/mChildID in a slightly confusing bit of nomenclature.
 
-### Processes ###
+### Process References ###
+
+LinkedList<> in-object single-list thing of inherently ALL content parents:
+* sContentParents
+
+ContentParent* array/hashes that maintain subset lists.  MarkAsDead() knows how
+to remove all of them from their lists.
+* sAppContentParents: hashtable keyed by its mAppManifestURL.  Added to by
+  CreateBrowserOrApp in the non-browser case.
+* sNonAppContentParents: Array, added to via GetNewOrUsedBrowserProcess when it
+  does PreallocatedProcessManager::Take or is forced to new a ContentParent.
+  MarkAsDead handles cleanup.
+* sPrivateContent: Array,
 
 #### Choosing the ContentParent ####
 
@@ -180,3 +192,19 @@ ContentParent::ActorDestroy unsurprisingly is the guts.  It:
 * calls ShutDownProcess
 * calls ContentProcessManager::RemoveContentProcess
 * schedules some Delayed* runnables for refcount and IPC IO loop reasons.
+
+## Low Level Function Notes ##
+
+### ContentParent::CreateBrowserOrApp ###
+
+* Quick bail via TabParent::GetNextTabParent() check which is part of the
+  AutoUseNewTab infrastructure for window.open().
+* Non-app case:  Defined as (IsMozBrowserElement() || !HasOwnApp()) where
+  IsMozBrowserElement explicitly is false if there's a "mozapp" attribute, and
+  HasOwnApp corresponds to being part of an app.  (And HasAppOwnerApp should
+  also be falsed because it requires HasOwnApp()).
+    * Determines constructorSender, one of:
+      * Creates a bridge if this is not the parent process.
+      * Uses explicitly provided aOpenerContentParent if provided.
+      * Otherwise, creates a new process via GetNewOrUsedBrowserProcess.
+* App case is leftover.  It does the sAppContentParents tracking.

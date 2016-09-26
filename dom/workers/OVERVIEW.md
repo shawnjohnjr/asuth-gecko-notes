@@ -74,7 +74,7 @@ registrations.  (Which the SWR loaded at profile-after-change time.)
   ServiceWorkerRegistrationData and upconverted to the ServiceWorkerRegistration
   webidl binding.
 * ServiceWorkerJob: Job abstraction for the async register/update/unregister
-  jobs.
+  jobs.  AsyncExecute is the entry point for subclasses' actual logic.
 * ServiceWorkerJobQueue: What the label says.
 * ServiceWorkerManager: The big brain, also the nsIServiceWorkerManager
   interface which is where devtools gets registrations from.

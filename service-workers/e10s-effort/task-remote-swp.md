@@ -114,6 +114,43 @@ Explicit ExtendableEvents:
 * (foreignfetch is not yet supported)
 * postMessage
 
+## Control Flow Changes ##
+
+### Scheduling Soft Updates ###
+
+TODO.
+
+Functional events call for a soft-update timer-check to be performed following
+the event proper.
+
+Pre-patch, this was accomplished by use of the
+ExtendableFunctionalEventWorkerRunnable runnable which decorated
+ExtendableEventWorkerRunnable's PostRun to dispatch a RegistrationUpdateRunnable
+with aNeedTimeCheck=true to the main thread.
+ServiceWorkerRegistrationInfo::MaybeScheduleTimeCheckAndUpdate would then invoke
+book-keep the pending check on mUpdateState and invoke SWM::ScheduleUpdateTimer.
+mUpdateState is a memory-only flag that manifests in the check-and-clear
+SWRI::CheckAndClearIfUpdateNeeded used by SWM::UpdateTimerFired.  With the
+latter being a consequence of the ScheduleUpdateTimer's 1sec nsITimer it created
+firing.  The duplicate check suppression currently happens in
+ScheduleUpdateTimer when arguably it could make sense to suppress earlier in
+SWRI.
+
+Post-patch, ExtendableFunctionalEventWorkerRunnable and
+RegistrationUpdateRunnable are simplified to register themselves as native
+promise handlers that fire upon any resolution of the underlying event.
+XXX check versus callback API
+
+### Push Error Reporter ###
+
+TODO.
+
+Pre-patch existed in SWP.cpp as the PromiseNativeHandler for the event with some
+synchronous failure handling built-in.  It reported an nsAString messageId and
+uint16_t reason (which ErrorResult is capable of conveying) to the pushservice
+via nsIPushErrorReporter.
+
+Post-patch, the error handling is pushed upward into the push service.
 
 # Interaction Points #
 

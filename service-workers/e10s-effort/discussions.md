@@ -1,3 +1,6 @@
+## September 20th: e10s meeting
+nothing of note
+
 ## August 30th: e10s meeting
 nothing of note.
 

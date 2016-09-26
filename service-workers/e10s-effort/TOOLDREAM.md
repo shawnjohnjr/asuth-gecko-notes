@@ -1,3 +1,57 @@
+## Spec algorithm implementation control flow understanding based on comments ##
+
+A lot of Gecko code includes references to algorithm callouts in the code.
+If these comments are sufficiently structured with the algorithms sufficiently
+called out, it would be possible to provide a combined view that lists the
+current algorithm with the spec and where in the code we claim to be
+implementing those steps.
+
+## Assisted code reading ##
+
+Starting at the top of a file and reading through is frequently not the best way
+to figure out what's going on.  Tooling could help provide guidance from within
+traditional code-reading scenarios such as dxr/searchfox raw code listings or
+in their editor.
+
+(NB: This has some conceptual overlap with the doccelerator effort whose UI was
+based on tiddlywiki where per-method/whatever docs were basically cards that
+were inserted into a working set of cards.  Individual cards could then be
+annotated with comments or things in that idiom.  While not a bad approach for
+what would otherwise be a javadoc-style encyclopedic UI, that's obviously not
+a natural interface to someone who is )
+
+### Through superclass annotations ###
+
+For example, ServiceWorkerJob subclasses do their main logic in AsyncExecute.
+If ServiceWorkerJob is annotated, then in a file implementing the class (and
+for which we might be able to determine it is the class that matters based on
+it being what's exposed in the corresponding header file, or just that it can
+be seen to dominate the other classes in the file through control flow usage.
+
+### By creating a narrative traversal of the file based on apparent flow ###
+
+Based on the above, if we can know what the meaningful entry points are, and we
+can figure out which methods/helper classes are exclusively covered by entry
+points, we can isolate those code-paths into their own "chapters" that are
+linearized through the control-flow path.
+
+In cases with explicit transfer of control flow using runnables, the links can
+be followed in a somewhat straightforward fashion.  In cases with a state
+machine, some level of interpretation based on when the state variable is
+changed and read would be needed to re-establish the graph.
+
+## DXR local call graph info w/parameter classification ##
+
+For example, in the case of SpawnWorkerIfNeeded, one of the arguments was
+`nsIRunnable* aLoadFailedRunnable`.  Some callers explicitly provide a runnable
+(runnable newed in the method), some explicitly do not (nullptr), and some pass
+through a runnable from their caller.
+
+Being able to click on the runnable argument and hit a button to get a dot-style
+graph (or just a grid?) that shows the three categories and call-sites, plus
+ideally a depth=1 recursive callers situation for the caller-propagates case
+would be killer.
+
 ## Overviews of State w/Multiprocess Linkage ##
 
 Use GDB to dump JSON representations of core/interesting state with the ability
