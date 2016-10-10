@@ -79,15 +79,22 @@ child content process for isolation purposes.
   ServiceWorkerManager and friends and maintainer of the notion of when the
   worker should be spun up and terminated due to idle-ness.  However, instead of
   constructing a WorkerPrivate and dispatching runnables to it, a
-  PServiceWorkerInstance is spawned and messages are sent to it instead.
-* RemoteServiceWorkerManager: Simple parent-only singleton that interacts with
-  ContentParent/ContentProcessManager to spawn remote ServinceWorkerInstances.
-  This includes spawning the (for now) dedicated service worker process while
-  providing the potential for alternate spawning strategies in the future.
-* ServiceWorkerInstanceChild: Inherits most of the ServiceWorkerPrivate code
-  that was not responsible for idle determination.  Spawns the WorkerPrivate on
-  creation and tears it down when the child actor is deleted.
-* ServiceWorkerInstanceParent: Adapt ServiceWorkerPrivate calls to the protocol.
+  ServiceWorkerInstanceParent (PServiceWorkerInstance) is spawned and messages
+  are sent to it instead via helpers on ServiceWorkerInstanceParent.
+* ServiceWorkerInstanceSpawner: Simple parent-only singleton that interacts with
+  ContentParent to spawn remote ServiceWorkerInstances.  This includes spawning
+  the (for now) dedicated service worker process while providing the potential
+  for alternate spawning strategies in the future.
+* ServiceWorkerInstanceChild: Spawns the WorkerPrivate on creation and tears it
+  down when the child actor is deleted.
+* ServiceWorkerInstanceParent: Adapt ServiceWorkerPrivate calls to the protocol
+  and process and report worker-level errors and other information.
+* ServiceWorkerEventChild: The new home of the per-message worker logic that
+  originally resided in ServiceWorkerPrivate.cpp.
+* ServiceWorkerEventParent: Tracks per-event state (callbacks, etc.) and
+  handles both completion notifications or event-specific responses such as
+  fetch's respondWith.
+
 
 
 ## Arbitrary Decisions By Me ##
@@ -108,8 +115,8 @@ instantiated on demand,
 Synthetic events we need:
 * evalutateScript (from SWP::CheckScriptEvaluation)
 Explicit ExtendableEvents:
-* install
-* activate
+* install (lifecycle)
+* activate (lifecycle)
 * fetch
 * (foreignfetch is not yet supported)
 * postMessage
@@ -192,3 +199,5 @@ main-thread owner for the worker-triggered request.
     current implementation which just tracks token count and treats the idle
     token as idle.  (As in, lingering things unsecured by a waituntil get the
     shaft.)
+
+## ServiceWorkerUpdateJob ##

@@ -52,7 +52,8 @@ paranoia.
 The existing use-cases are then:
 * Not used, assumed inductive cover from cache:
   * SendMessage
-  * CheckScriptEvaluation
+  * CheckScriptEvaluation: this is actually what primes the cache, though!  This
+    is really the only one that matters!
   * Notification
   * Push
 * Paranoia:
@@ -66,3 +67,5 @@ The existing use-cases are then:
       ContinueActivateRunnable to propagate the SetResult.
     * ServiceWorkerUpdateJob::Install: Same deal, but with the method being
       ContinueAfterInstallEvent.
+
+### KeepAliveTokens ###
