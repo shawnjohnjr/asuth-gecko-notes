@@ -26,6 +26,19 @@ Events where caller does not care about the result (run for side-effects):
 * Push, Push Subscription Change
 * Notification
 
+#### Extendable Event Support Logic ####
+
+* ExtendableEventWorkerRunnable: Extendable base-class WorkerRunnable whose
+  DispatchExtendableEventOnWorkerScope helper method handles the dispatch of
+  the event, extracting the promise, and hooking up a KeepAliveHandler.
+
+* KeepAliveHandler and KeepAliveHandler::InternalHandler: effectively duplicates
+  LifeCycleEventWatcher?
+  * Used by:
+    * DispatchExtendableEventOnWorkerScope: (also may hookup other provided
+      promise which ends up being LifeCycleEventWatcher)
+    * DispatchFetchEvent
+
 
 #### Lifecyle ####
 

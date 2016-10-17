@@ -68,7 +68,8 @@ registrations.  (Which the SWR loaded at profile-after-change time.)
 * ServiceWorkerContainer: Binding of navigator.serviceWorker, exposes
   register(), existing registrations, existing controller, etc.
 * ServiceWorkerEvents: fetch event, push message event, respondWith handler,
-  waitUntil handler, extendable event base logic.
+  waitUntil handler, extendable event base logic.  NOT the runnables that use
+  them.
 * ServiceWorkerInfo: Canonical representation of the registration for our
   internal gunk, exposed as nsIServiceWorkerInfo.  Populated from the ipdlh
   ServiceWorkerRegistrationData and upconverted to the ServiceWorkerRegistration

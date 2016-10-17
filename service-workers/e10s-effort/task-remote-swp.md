@@ -120,6 +120,9 @@ Explicit ExtendableEvents:
 * fetch
 * (foreignfetch is not yet supported)
 * postMessage
+(Extended via spec)
+* push
+* notification
 
 ## Control Flow Changes ##
 
