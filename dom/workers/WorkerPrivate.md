@@ -22,3 +22,5 @@ thread.
 ## CompileScriptRunnable ##
 Runnable that uses scriptloader::LoadMainScript to create the main global and
 evaluate the main script into it.
+
+## SyncLoops: RunCurrentSyncLoop / AutoSyncLoopHolder ##

@@ -1,3 +1,5 @@
+**The P is for Private!**
+
 Provides specific types nsPIDOMWindowInner and nsPIDOMWindowInner to reify the
 semantic concepts of outer and inner window into the type system, even though
 nsGlobalWindow is the concrete type of everything.

@@ -36,3 +36,7 @@ up-to-date.  Example uses:
 * The presence of an active timer contributes a busy count of 1.
 
 ## Garbage Collection ##
+
+## Service Worker Network Retrieval, Storage ##
+
+Service Workers and their importScripts dependencies are stored into DOM Cache.

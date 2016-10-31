@@ -1,3 +1,10 @@
+## Terminology ##
+(not sure idioms is right here)
+
+* Windows:
+  * HTML Spec "Browsing Context" == Gecko "outer window" and docshell
+  * HTML Spec "Window" == Gecko "inner window"
+
 ## Thread Safety ##
 
 ### NS_ASSERT_OWNINGTHREAD ##
@@ -16,4 +23,22 @@ Wire Representations:
     JSStructuredCloneData providing operator=
   * JSStructuredCloneData (IPCMessageUtils.h)
 * Rep w/transferables:
-  *
+  * ClonedMessageData (DOMTypes.ipdlh)
+* Rep w/persistables:
+  * SerializedStructuredCloneReadInfo is SerializedStructuredCloneBuffer w/blobs
+    with nullable PBlob/PBackgroundMutableFile.
+
+scratch:
+  struct ClonedMessageData
+  {
+    SerializedStructuredCloneBuffer data;
+    PBlob[] blobs;
+    MessagePortIdentifier[] identfiers;
+  };
+
+  struct MessagePortMessage
+  {
+    SerializedStructuredCloneBuffer data;
+    PBlob[] blobs;
+    MessagePortIdentifier[] transferredPorts;
+  };
