@@ -127,5 +127,6 @@ isa BlobImpl, nsIRemoteBlob
 
 ### ??? BlobChild::GetOrCreate ###
 Deferred to by BackgroundChild::GetOrCreateActorForBlobImpl and friends.
+
 ### ??? BlobParent::GetOrCreate ###
 Deferred to by BackgroundParent::GetOrCreateActorForBlobImpl and friends.

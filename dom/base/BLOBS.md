@@ -35,6 +35,15 @@ dom/indexeddb/ActorsParent.cpp:
 
 ### IPC-related ###
 
+dom/ipc/PBlob.ipdl:
+* PBlob: Actor for blobs:
+  * ResolveMystery (c->p):
+
+dom/ipc/PBlobStream.ipdl:
+* PBlobStream: Async means of child asking the parent for {InputStreamParams,
+  OptionalFileDescriptorSet} tuple; compare with BlobStreamSync provided by
+  PBlob which does the same thing.
+
 dom/ipc/nsIRemoteBlob.h (not .idl!):
 * nsIRemoteBlob (isa nsISupports NS_NO_VTABLE): provides GetBlobChild() and
   GetBlobParent().
@@ -53,8 +62,18 @@ constructor params:
   it's BlobData.
 * SlicedBlobConstructorParams (p<-c): struct {PBlob source, nsID, begin, end,
   contentType}.
-* MysteryBlobConstructorParams (p->c): empty.
-* KnownBlobConstructorParams (p<-c): struct { nsID }
+* MysteryBlobConstructorParams (p->c): empty.  Used only for IndexedDB blobs
+  where the child is expected to PBlob.ResolveMystery() once it deserializes the
+  missing size/date metadata from the structured clone.
+* KnownBlobConstructorParams (p<-c): struct { nsID }.  Used to avoid refcounting
+  races when a BlobChild is created off of an existing (remote) blob (identified
+  by its nsID).  We addref the "other" BlobImpl and only free it once the parent
+  has processed our constructor and sent us a PBlob.CreatedFromKnownBlob()
+  message.  **understand/characterize race; this is currently speculative:**.
+  My current best speculation is that this becomes an issue with a remote Blob
+  that is surfaced on both the main thread and a worker (and possibly PContent
+  versus PBackground) and therefore they're using different channels and the
+  ordering of [add, release] would not otherwise be guaranteed.
 * SameProcessBlobConstructorParams (p<>c): struct {intptr_t addRefedBlobImpl}
   where pointer gets reinterpret_cast<BlobImpl>-ed.
 * AnyBlobConstructorParams: union of all of the above
@@ -85,6 +104,32 @@ also check: StructuredCloneHolder.cpp's usage of MultipartBlobImpl::Create
 
 ## IPC ##
 
-### Blob.cpp ###
+### General Flow ###
+
+When sending a blob over the wire, it's sent as a PBlob using the
+BlobConstructorParams from DOMTypes.ipdlh.  The rule is that the parent always
+"knows" the content of all blobs, but the child has to ask for the contents
+(via PBlobStream or BlobStreamSync)
+
+These constructor parameters may
+fully characterize the contents of the blob (for example: child-to-parent
+NormalBlobConstructo)
+
+### Mystery Blobs and IndexedDB ###
+
+Mystery blobs are created by the parent in BlobParent::GetOrCreateFromImpl when
+the size or date of the blob is unknown.  This is expected to occur in the case
+of IDB's BlobImplStoredFile.  It is left up to the child to send the information
+up when it deserializes the Blob in CommonStructuredCloneReadCallback via calls
+to CreateAndWrapBlobOrFile().  The structured clone representation serializes
+the size (and date, if file) as part of the structured clone, which helps avoid
+the need to perform any fstat's.  (Not to mention it might be impossible to
+convince the filesystem to use the date we want it to.  Not that the data
+couldn't have just been stored in the database outside of the structured clone
+in a normalized table like where IDB already stores the refcounts.)
+
+### Implementation Details / Further Roll Call ###
+
+#### Blob.cpp ####
 
 See dom/ipc/Blob.md

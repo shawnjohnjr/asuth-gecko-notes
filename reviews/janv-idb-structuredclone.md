@@ -180,3 +180,43 @@ feedback:
 ## Part 9 ##
 
 ## Part 10 ##
+
+# Bug 1312808 : Persisted Version Upgrades of WASM #
+
+## Low-level Change Summary ##
+
+ActorsChild.cpp:
+* DeserializeStructuredCloneFiles simplification:
+  * The two separate switch branches for StructuredCloneFile::eWasmBytecode and
+    StructuredCloneFile::eWasmCompiled are being combined.
+  * *Assertion Change!*  Previously the type for eWasmBytecode was asserted to
+    be TPBlobChild; eWasmCompiled could be that or Tnull_t.  Now both are
+    required to be eWasmBytecode.
+  * Accordingly, the switch that enabled different behavior for null and
+    non-null went away.
+  * Other changes that assume the compiled file blob is always available.
+
+ActorsParent.cpp:
+* FileHelper abstraction introduced:
+  * CheckWasmModule:
+    * Existing check logic migrated in here; takes the form of opening the file
+      descriptor and getting the buildid, then handing both off to
+      JS::CompiledWasmModuleAssumptionsMatch.  If they match, early return.
+    * Mismatch continues onward with new logic!
+    * Also opens the bytecode file's descriptor.
+    * Deserializes the wasm module.
+    * Re-compiles the module: get size, allocate contiguous buffer, serializes
+      into it.
+    * Writes it:
+      * Creates ByteInputStream inputStream
+      * Creates [newFile, newJournalFile] pair
+      * Uses FileHelper::CreateFileFromStream to write it to disk
+      * Uses FileHelper::ReplaceFile to replace compiledFile with newFile.
+      * Uses FileHelper::RemoveFile to clean up newFile, newJournalFile.
+  * ObjectStoreAddOrPutRequestOp::DoDatabase:
+    * file directory and journal directory ensure
+
+## High-level ##
+
+Previous handling of out-of-date compiled blobs:
+- Would check at open time and send down the null_t compiled blob.

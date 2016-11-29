@@ -1,4 +1,4 @@
-IPC-aware StructureCloneHolder subclass that, in addition to providing IPC
+IPC-aware StructuredCloneHolder subclass that, in addition to providing IPC
 serialization support (by just deferring to the underlying
 JSStructuredCloneData), adds additional memory-management glue.
 

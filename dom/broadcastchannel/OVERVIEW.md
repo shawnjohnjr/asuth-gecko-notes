@@ -49,3 +49,23 @@ BroadcastChannel uses the common ClonedMessageData from DOMTypes.ipdlh:
 Where SerializedStructuredCloneBuffer is a native class of `uint64_t* data`, and
 `size_t dataLength` with a template that knows how to write its length followed
 by its data padded out to 64-bit alignment.
+
+## Flow ##
+
+### Sending ###
+
+* BroadcastChannel::PostMessage: does a state check, then defers to:
+* BroadcastChannel::PostMessageInternal: Creates a BroadcastChannelMessage (isa
+  StructuredCloneHolder that disables transferring, which differs from others
+  like MessagePort), structured clone writes into it, then invokes:
+* PostMessageData, which takes the BroadcastChannelMessage and ensures that a
+  BCPostMessageRunnable is eventually created and dispatched to the current
+  thread.  This happens whenever we have mActor; if we have it right now, then
+  now, otherwise the message is appended to mPendingMessages will queue it
+  until ::ActorCreated() happens.
+* BCPostMessageRunnable::Run:
+  * sanity-checks mActor isn't destroyed, bailing if it is.
+  * Creates a stack-owner ClonedMessageData, borrowing (which means true owner
+    has to stay alive, which it does because this all happens in a single call)
+    from the BroadcastChannelMessage.
+  * Sizes ClonedMessageData's blobsChild via SetCapacity(), then runs over the
