@@ -111,9 +111,17 @@ BlobConstructorParams from DOMTypes.ipdlh.  The rule is that the parent always
 "knows" the content of all blobs, but the child has to ask for the contents
 (via PBlobStream or BlobStreamSync)
 
-These constructor parameters may
-fully characterize the contents of the blob (for example: child-to-parent
-NormalBlobConstructo)
+### Blobs sent from the child to the parent multiple times ###
+
+Unless this is IndexedDB we're talking about, Blobs sent from a child to a
+parent that aren't remote blobs sent from the parent will be duplicated every
+time they are sent up to the parent.
+
+IndexedDB use a weak-ref cache that maps Blob instances to previously created
+(and still alive) actors in IDBDatabase::GetOrCreateFileActorForBlob.
+
+When the parent receives a blob it creates a UUID that it tags the Blob with
+(in BlobParent::CreateFromParams).  This allows the
 
 ### Mystery Blobs and IndexedDB ###
 
