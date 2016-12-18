@@ -128,6 +128,15 @@ convince the filesystem to use the date we want it to.  Not that the data
 couldn't have just been stored in the database outside of the structured clone
 in a normalized table like where IDB already stores the refcounts.)
 
+### Specific Blob Type Handling ###
+
+#### Memory-backed Blobs ####
+
+Memory-backed Blobs (BlobImplMemory) are exposed as nsStringInputStreams via
+DataOwnerAdapter::Create using NS_NewByteInputStream.
+nsStringInputStream::Serialize serializes as StringInputStreamParams where the
+entirety of the blob is sent across the wire in a single go.
+
 ### Implementation Details / Further Roll Call ###
 
 #### Blob.cpp ####

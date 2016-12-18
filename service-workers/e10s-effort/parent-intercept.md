@@ -1,4 +1,26 @@
-## How stuff works pre-Josh 1231222
+## Patch cleanup to-do's ##
+
+### Test issues ###
+
+* wpt linux opt 2 /fetch/api/redirect/redirect-count.html
+  * context
+    * "Redirect 308 21 times - Test timed out"
+    * manifests locally for me
+    * not manifesting on try on linux debug, linux x64 opt, etc.
+    * https://treeherder.mozilla.org/#/jobs?repo=try&revision=2159cf9cc333&selectedJob=31653828
+  * analysis:
+    * seems to have been an artifact of the checkout I based things on
+  * fix: not needed.
+* my revised registration assertion WPT 8 triggering on
+  /service-workers/service-worker/update-after-oneday.https.html
+  * context:
+    * Assertion failure: registration->GetWaiting()->CacheName() == registration->mPropagatingRegistrationCacheName, at /home/worker/workspace/build/src/dom/workers/ServiceWorkerManager.cpp:1732
+    * manifesting on try on linux x64 debug, os X 10.10 debug, also on win 7 VM
+      debug where it's wpt 9.
+  * analysis:
+    * the assertion was unsound.  converted to an additional condition check.
+
+## OLD! How stuff works pre-Josh 1231222
 
 ### The Players
 

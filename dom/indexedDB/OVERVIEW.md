@@ -1,4 +1,29 @@
-## IPDL And Uniformity
+## Structure Cloning, Persistence, and IPC
+
+Basics:
+- The structured clone writes happen in the content process.
+- The reads happen in the content process too!
+- All the database reads and writes happen in the parent!
+
+Fallout:
+- This creates some complexity for the IDB logic in the parent process when
+  fetching records because it needs to do things like create blob actors without
+  the benefit of being able to deserialize the structured clone data.
+  - This is addressed by storing metadata in a separate column next to the
+    serialized structured clone.  (Note: the structured clone itself may end up
+    being stored externally.)
+  - The metadata is an encoded list of numeric file id's.
+    - The numeric part is the name of the file on disk under the database's
+      ".files"-suffixed dir.
+    - The prefix encodes the type of StructuredCloneFile::FileType it is.
+      (blob, mutable file, spilled huge structured clone, wasm bytecode, wasm
+      compiled).
+  - Some metadata is deferred.  Specifically, for Blobs/Files the size/date is
+    stored in the structured clone and not stored as metadata in the database
+    or attempted to be extracted from the filesystem (which would be slow and/or
+    unreliable.)  This is where "mystery" blobs come from; the blob/actor needs
+    to be created before everything is known about it.  The child resolves the
+    mystery when it reads the structured clone.
 
 
 
@@ -41,11 +66,9 @@
 
 ## Scheduling
 
-? ThreadRunnable
-
 ConnectionPool
   * Start (...TransactionDatabaseOperationBase)
-  * ScheduleTransaciton(TransactionInfo, aFromQueuedTransactions)
+  * ScheduleTransaction(TransactionInfo, aFromQueuedTransactions)
     * If dbInfo->mClosing, queue in mTransactionsScheduledDuringClose and bail.
     * If no thread associated yet:
       * if no mIdleThreads,
