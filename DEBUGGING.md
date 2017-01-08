@@ -1,5 +1,15 @@
 ## JS ##
 
+### SlowScript / WASM issues ###
+
+By default when using "mach", the slow script mechanism will be disabled.  This
+disables WASM.  Accordingly, the commandline to use looks something like:
+
+./mach run -P wasm --debugger gdb --slowscript
+
+Noting that it seems like I'm experiencing some serious "gdb session locks up"
+problems in the variant where I've been trying this...
+
 ### Dumping Stacks ###
 
 calling DumpJSStack() works a lot of the time
