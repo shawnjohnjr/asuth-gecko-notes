@@ -1,3 +1,48 @@
+HANGING THREAD: worker debugger remoting:
+* known design choices: per discussion with ejpbruel we decided that transparent
+  tunneling of the debugger interface is the way to go rather than requiring
+  devtools to flood enumerate all workers in all processes.
+* the question: should I create a slightly more generic RemoteWorker affordance
+  so that SharedWorkers can also avail themselves of the transparent tunneling?
+  * context is key: SharedWorkers' lifecycle is tied to page.  So there's an
+    inherent tying context like for normal workers.  The new interesting wrinkle
+    as we go multiprocess with SharedWorkers is that they need not exist in the
+    current process.
+    * interesting complication here in that remote protocol by default is just
+      going to be parent-child, but the remote content actor case potentially
+      may end up in a sibling relationship.
+      * could just have the actors know to ask for the connection from the root
+        parent.
+  * interaction with bkelly's Client work?  There's the potential to enumerate
+    all clients and debug any given context, but as bkelly says with
+    about:debugging UX: it's way too many things.  Scoped potentially makes more
+    sense, although devtools could hook in.
+* TENTATIVE PLAN: factor things as loosely coupled so we have
+  PRemoteWorkerDebugger with its own implementation, but it lives in the service
+  directory for now.  We can move it side-ways to a "workers/debugger" directory
+  if we refactor to allow SharedWorker to use it.
+* sorta processed investigation: how does devtools currently transparently
+  remote the worker stuff? Answer: Actors are transparently remoted, workers are
+  listed via context; it's only in the service worker case that there's the
+  potential for things to be spread across multiple processes, so the
+  about:debugging backend knows to enumerate all workers.
+  * in client/aboutdebugging/modules/worker.js: client.getProcess() returns a
+    "form.actor" that client.request() is able to message "listWorkers" to.
+  * SW answer is server/actors/child-process.js implements "listWorkers", which
+    holds a WorkerActorList alive, and returns a { from, workers } object where
+    for each entry in workers, the actor.form() was returned.
+    * form() allows for custom marshalling; it's generally assumed form() will
+      be invoked on the server side to marshal and on the matching client side
+      to unmarshal.
+    * looks like there's no explicit consumer to unpack the form though?  maybe
+      it just gets a generic mix-in thing going on?
+  * in general, though, listWorkers() is context-dependent.  root worker seems
+    like it just returns for root process; the BrowserTabActor implementation
+    handles it for tabs and is currently modeled to always be talking OOP; its
+    connect() uses DebuggerServer.connectToChild (with a xul:browser or iframe
+    mozbrowser); and ChildProcessActor can do it too.  ChildProcessActor is what
+    about:debugging, a special case, uses.
+
 # Overview #
 
 ## Goal ##
