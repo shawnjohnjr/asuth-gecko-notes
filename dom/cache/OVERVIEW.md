@@ -173,7 +173,11 @@ Sources:
 
 Comments indicate it's to know when things can be deleted / other optimizations.
 IndexedDB already has some smarts with its reference-counted, file-backed blobs,
-so the Q is why can't we just be using that?
+so the Q is why can't we just be using that?  The answer is the IndexedDB
+solution is very IndexedDB-specific and has cleverness related to de-duplication
+of the same Blob sent over the wire in a request, etc.
+
+MOOT, but need to extract better definition of how CacheReadStream works:
 
 First guess is that IndexedDB's modeling of things as an
 already-there-in-its-entirety Blob is problematic.  But prior investigations

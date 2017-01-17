@@ -29,28 +29,78 @@ Fallout:
 
 ## Classes
 
+Interesting operation hierarchies:
+
 * DatabaseOperationBase
   * FactoryOp (isa PBackgroundIDBFactoryRequestParent, OpenDirectoryListener)
-    * Subclasses:
-      * OpenDatabaseOp
-      * DeleteDatabaseOp
-    * Potentially held by:
-      * gFactoryOps
-      * FactoryOp::mDelayedOp
-      * DatabaseActorInfo::mWaitingFactoryOp
+    * OpenDatabaseOp
+    * DeleteDatabaseOp
+  * DeleteDatabaseOp::VersionChangeOp
   * TransactionDatabaseOperationBase
     * NormalTransactionOp (aisa PBackgroundIDBRequestParent)
       * ObjectStoreAddOrPutRequestOp
+        * has nested classes: StoredFileInfo, SCInputStream
       * ObjectStoreGetRequestOp
       * ObjectStoreGetKeyRequestOp
       * ObjectStoreDeleteRequestOp
       * ObjectStoreClearRequestOp
       * ObjectStoreCountRequestOp
       * IndexRequestOpBase
+        * IndexGetRequestOp
+        * IndexGetKeyRequestOp
+        * IndexCountRequestOp
+    * VersionChangeTransactionOp
+      * CreateObjectStoreOp
+      * DeleteObjectStoreOp
+      * RenameObjectStoreOp
+      * CreateIndexOp
+      * DeleteIndexOp
+      * RenameIndexOp
+    * Cursor::CursorOpBase
+      * Cursor::OpenOp
+      * Cursor::ContinueOp
+
+  * DatabaseOp: exists only for CreateFileOp.
+    * CreateFileOp: exists for creating mutable files.  (Journaled appendable
+      files that are moz-specific at this point because of filesystem api
+      snafu.  Check standards as needed.)
 
   * TransactionBase
     * NormalTransaction
+    * ??? VersionChangeTransaction
+  * TransactionBase::CommitOp
 
+
+
+
+### State machines
+
+* FactoryOp: Well-documented database/quota-level operations.
+  * States: Initial PermissionChallenge, PermissionRetry, FinishOpen,
+    QuotaManagerPending, DirectoryOpenPending, DatabaseOpenPending,
+    DatabaseWorkOpen, BeginVersionChange, WaitingForOtherDatabasesToClose,
+    WaitingForTransactionsToComplete, DatabaseWorkVersionChange,
+    SendingResults, Completed.
+  * Potentially held by:
+    * gFactoryOps
+    * FactoryOp::mDelayedOp
+    * DatabaseActorInfo::mWaitingFactoryOp
+
+* TransactionDatabaseOperationBase:
+  * States: Initial, DatabaseWork, SendingPreprocess, WaitingForContinue,
+    SendingResults, Completed.
+* DatabaseOp:
+  * States: Initial, DatabaseWork, SendingResults, Completed.
+* TransactionBase
+
+* WaitForTransactionsHelper
+  * States: Initial, WaitingForTransactions, WaitingForFileHandles, Complete.
+
+* Maintenance
+  * States (enum class State): Initial, CreateIndexedDatabaseManager,
+    IndexedDatabaseManagerOpen, DirectoryOpenPending, DirectoryWorkOpen,
+    BeginDatabaseMaintenance, WaitingForDatabaseMaintenancesToComplete,
+    Finishing, Complete.
 
 ## Life-cycle things
 
