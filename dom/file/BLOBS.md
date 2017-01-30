@@ -4,10 +4,10 @@ There's a lot going on with Blobs.
 
 ### Local (non-IPC) ###
 
-dom/base/nsIDOMBlob.idl:
+dom/file/nsIDOMBlob.idl:
 * nsIDOMBlob (isa nsISupports): empty interface
 
-dom/base/File.h:
+dom/file/File.h:
 * Blob (isa nsIDOMBlob)
 * File (isa Blob)
 * BlobImpl (isa nsISupports): abstract class
@@ -20,10 +20,10 @@ dom/base/File.h:
 * EmptyBlobImpl (isa BlobImplBase)
 * BlobImplStream (isa BlobImplBase): nsIInputStream under the hood.
 
-dom/base/MultipartBlobImpl.h:
+dom/file/MultipartBlobImpl.h:
 * MultipartBlobImpl (isa BlobImplBase)
 
-dom/base/MutableBlobStorage.h: (evolved from BlobSet)
+dom/file/MutableBlobStorage.h: (evolved from BlobSet)
 * MutableBlobStorage (not isa): explicitly main-thread-only.  Helper class that
   creates and writes to a temporary file on an I/O thread, producing a
   BlobImplTemporaryBlob asynchronously on request.  (A runnable bounce is used
@@ -35,16 +35,16 @@ dom/indexeddb/ActorsParent.cpp:
 
 ### IPC-related ###
 
-dom/ipc/PBlob.ipdl:
+dom/file/ipc/PBlob.ipdl:
 * PBlob: Actor for blobs:
   * ResolveMystery (c->p):
 
-dom/ipc/PBlobStream.ipdl:
+dom/file/ipc/PBlobStream.ipdl:
 * PBlobStream: Async means of child asking the parent for {InputStreamParams,
   OptionalFileDescriptorSet} tuple; compare with BlobStreamSync provided by
   PBlob which does the same thing.
 
-dom/ipc/nsIRemoteBlob.h (not .idl!):
+dom/file/ipc/nsIRemoteBlob.h (not .idl!):
 * nsIRemoteBlob (isa nsISupports NS_NO_VTABLE): provides GetBlobChild() and
   GetBlobParent().
 
@@ -111,7 +111,23 @@ BlobConstructorParams from DOMTypes.ipdlh.  The rule is that the parent always
 "knows" the content of all blobs, but the child has to ask for the contents
 (via PBlobStream or BlobStreamSync)
 
-### Blobs sent from the child to the parent multiple times ###
+### Parent Blobs Sent From Child ###
+
+These come through BlobParent::CreateFromParams which uses the (parent-only)
+CreateBlobImpl methods from ipc/Blob.cpp.
+
+For memory-backed blobs authored in the content process, these end up as
+BlobImplStream instances backed by either an nsStringStream for small blobs or
+an unbounded nsPipeInputStream filled-by a (P)SendStream(Parent).  This is
+notably different than a BlobImplMemory because for:
+- nsStringStream, cloning uses assignment/copying via
+  nsDependentCString::Assign.
+- nsPipe(InputStream): It's clever about clones.  Note that because the pipe is
+  explicitly infinite, we don't have to worry about backpressure killing the
+  send stream.
+
+
+#### Blobs sent from the child to the parent multiple times ####
 
 Unless this is IndexedDB we're talking about, Blobs sent from a child to a
 parent that aren't remote blobs sent from the parent will be duplicated every

@@ -1,3 +1,9 @@
+## treeherder try push results scraper helper ##
+
+Alternate treeherder view reminiscent of ArbPL test failure tree structure that
+understands touched (or explicitly interesting) tests and can show both pending
+and results.  Plus perhaps diff-view of their differing log results.
+
 ## Spec algorithm implementation control flow understanding based on comments ##
 
 A lot of Gecko code includes references to algorithm callouts in the code.

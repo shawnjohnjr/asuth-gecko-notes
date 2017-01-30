@@ -1,6 +1,8 @@
 
 ## Create Blob implementations from BlobData serialization type ##
 
+Note: All of these methods assert that they are in the parent process!
+
 CreateBlobImpl(nsID, CreateBlobImplMetadata):
 * Asks BlobParent::GetBlobImplForID to provide a BlobImpl, which it returns.
 * Asserts the blob is not mutable.

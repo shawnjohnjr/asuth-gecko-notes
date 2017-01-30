@@ -37,6 +37,8 @@ Interesting operation hierarchies:
     * DeleteDatabaseOp
   * DeleteDatabaseOp::VersionChangeOp
   * TransactionDatabaseOperationBase
+    * OpenDatabaseOp::VersionChangeOp
+    * Database::StartTransactionOp
     * NormalTransactionOp (aisa PBackgroundIDBRequestParent)
       * ObjectStoreAddOrPutRequestOp
         * has nested classes: StoredFileInfo, SCInputStream
@@ -67,7 +69,7 @@ Interesting operation hierarchies:
 
   * TransactionBase
     * NormalTransaction
-    * ??? VersionChangeTransaction
+    * VersionChangeTransaction
   * TransactionBase::CommitOp
 
 
@@ -187,3 +189,8 @@ Event results in child:
   * Fast-bail to DispatchErrorEvent if the transaction was aborted.
   * Uses CreateGenericEvent
   * Uses IDBRequest::DispatchEvent which is really DOMEventTargetHelper's impl
+
+
+## Failure Handling
+
+TransactionDatabaseOperationBase defines an Init() method where false can be

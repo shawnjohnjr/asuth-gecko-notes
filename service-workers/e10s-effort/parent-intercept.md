@@ -2,6 +2,14 @@
 
 ### Test issues ###
 
+* Assertion: mSuspendCount > 0, ChannelEventQueue.cpp:67
+  * test: bc7: browser/base/content/test/general/browser_bug676619.js
+  * analysis:
+    * in at least one case, dies when trying to use the id=link2 video.ogg with
+      download attribute but no filename.
+    * This is the ExternalHelperAppChild::DivertToParent() code path, as
+      also indicated by the log entry for SetApplyConversion from that method's
+      call to MaybeApplyDecodingForExtension();
 * wpt linux opt 2 /fetch/api/redirect/redirect-count.html
   * context
     * "Redirect 308 21 times - Test timed out"
@@ -9,8 +17,10 @@
     * not manifesting on try on linux debug, linux x64 opt, etc.
     * https://treeherder.mozilla.org/#/jobs?repo=try&revision=2159cf9cc333&selectedJob=31653828
   * analysis:
-    * seems to have been an artifact of the checkout I based things on
-  * fix: not needed.
+    * This has happened a few times across multiple runs/rebasing.  Assuming
+      it's real.  Could be diversion related.
+
+Fixed:
 * my revised registration assertion WPT 8 triggering on
   /service-workers/service-worker/update-after-oneday.https.html
   * context:

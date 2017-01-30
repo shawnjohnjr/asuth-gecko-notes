@@ -69,3 +69,21 @@ ApplyEvent is hacked into CloneStorageEvent which sorta has the upside that it
 occurs prior to the IsFrozen() check so that the mutations will occur at the
 right time.  Unfortunately, because the event is sent through an additional time
 on unfreeze
+
+## Example failure cases:
+
+process A: [ foo=1, delete(foo), bar=2 ] => { bar: 2 }
+process N: [ preload ]
+
+main thread sees: [ A:foo=1, N:preload, A:delete(foo), bar=2]
+N sees: [ A:delete(foo) delayed, sync preload wait of {foo:1}, A:delete(foo)
+applied, bar=2 ] => { bar: 2 }
+
+main thread sees: [ A:foo=1, A:delete(foo), N:preload, bar=2]
+N sees: [ bar=2, sync preload wait of {} ]
+
+with replicated write-backs
+process A: [ foo=1, delete(foo) ]
+process B: [ echo:foo=1, echo:delete(foo) ]
+process N: [ preload ]
+db thread sees: [ A:foo=1, A:delete(foo), B:echo:foo=1, N:preload, B:echo:delete(foo) ]
