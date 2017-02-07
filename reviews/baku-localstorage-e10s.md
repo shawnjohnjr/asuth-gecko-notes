@@ -1,6 +1,16 @@
 ## Multiprocess localstorage change event broadcasting ##
 https://bugzilla.mozilla.org/show_bug.cgi?id=1285898
 
+### Follow-ups to file:
+
+* overhaul localstorage
+  * privatebrowsing localstorage limitations: loss of persistence with wonky
+    coherency since we will propagate changes but have no initial state
+    transmission.
+  * changes in children will not be applied in parent, but changes in parent
+    will be applied in children.
+* bfcache events issue
+
 ### IPC
 
 PContent gains a bi-directional DispatchLocalStorageChange(nsStrings:

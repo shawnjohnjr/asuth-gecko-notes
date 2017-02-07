@@ -1,5 +1,17 @@
 https://bugzilla.mozilla.org/show_bug.cgi?id=1311057
 
+## 2017/01/30 new Part 4
+
+head.js:
+* much of this is derived from IDB's unit/xpcshell-head-parent-process.js
+
+QuotaManager{Service}::Init
+* Just starts up QuotaManager if it wasn't already.  Basically a NOP that
+  requires initialization and asserts things are initialized when it runs,
+  which provides an ordering gurantee when the callback fires.
+
+## 2017/01/15
+
 Most of this is just rote removal.  There are some non-obvious changes.
 
 ### Non-obvious things to track. ###
@@ -35,4 +47,4 @@ Revised FactoryOp::CheckPermission:
 For AsmJSCache:
 * mEnforcingQuota was already always true; both the initial value and the
   use of IsQuotaEnforced that would always return true.
-* 
+*
