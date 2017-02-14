@@ -1,7 +1,7 @@
 
-## Create Blob implementations from BlobData serialization type ##
+## Parent: Create Blob implementations from BlobData serialization type ##
 
-Note: All of these methods assert that they are in the parent process!
+(All of these methods assert that they are in the parent process!)
 
 CreateBlobImpl(nsID, CreateBlobImplMetadata):
 * Asks BlobParent::GetBlobImplForID to provide a BlobImpl, which it returns.
@@ -29,7 +29,7 @@ CreateBlobImplFromBlobData(BlobData, CreateBlobImplMetadata):
 * Switches on BlobData.type() to dispatch to either of the 3 above
   CreateBlobImpl calls.
 
-## Create BlobData serialization from BlobImpl's ##
+## Child/Content: Create BlobData serialization from BlobImpl's ##
 
 BlobDataFromBlobImpl(templated ChildManagerType*, BlobImpl*, BlobData, AutoIPCStream[]):
 * If BlobImpl->GetSubBlobImpls(), creates BlobData[] and iterates over the

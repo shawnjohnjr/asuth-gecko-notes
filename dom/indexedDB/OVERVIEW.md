@@ -72,8 +72,20 @@ Interesting operation hierarchies:
     * VersionChangeTransaction
   * TransactionBase::CommitOp
 
+### Operation Hierarchy: Who Holds What
 
+FileManager:
+* Database: Provided at creation time.  Never cleared.  Exposed via
+  GetFileManager().
+* DatabaseConnection: Provided at creation time in
+  ConnectionPool::GetOrCreateConnection from its Database.  Cleared in Close().
+  * Close happens via CloseConnectionRunnable on connection thread.
 
+Does TransactionDatabaseOperationBase's mTransaction hold the database alive?
+* TransactionDatabaseOperationBase has TransactionBase mTransaction, exposed via
+  Transaction().
+* TransactionBase has Database mDatabase. exposed via public GetDatabase().
+  Never nulled out.
 
 ### State machines
 
