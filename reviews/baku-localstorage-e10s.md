@@ -1,6 +1,33 @@
 ## Multiprocess localstorage change event broadcasting ##
 https://bugzilla.mozilla.org/show_bug.cgi?id=1285898
 
+### Potential NS_ERROR_FILE_CORRUPTED error
+https://bugzilla.mozilla.org/show_bug.cgi?id=1341070
+
+The Storage::SetItem call uses explicit errors, but does propagate
+StorageCache::SetItem unchanged.
+
+StorageCache::SetItem can return an arbitrary rv:
+* mLoadResult is returned if it's a failure.
+  * This is saved off from the arg to StorageCache::LoadDone.  The other writes
+    are NS_OK or NS_ERROR_FAILURE.
+    * StorageDBChild::SyncPreload checks and invokes LoadDone with mStatus if
+      it's a failure status.
+      * SEE BELOW on mStatus
+    * If there was no failure state, StorageDBChild::SyncPreload is compelled to
+      issues a sync SendPreload, and its rv is returned.
+* StorageDBBridge::AsyncAddItem or StorageDBBridge::AsyncUpdateItem can be
+  propagated.
+  * These fall if NS_FAILED(mStatus) || !mIPCOpen.  See below about mStatus.
+
+mStatus is a lagging status indicator; calls like StorageDBChild::AsyncAddItem
+check it on entry and return if there's a failure.  However, mStatus gets set
+asynchronously via RecvError which is sent from the parent when calls like
+StorageDBThread::AsyncAddItem return an NS_FAILED rv.  These end up redirected
+to StorageDBThread::InsertDBOp.  Which:
+  * Returns mStatus if NS_FAILED(mStatus).
+
+
 ### Follow-ups to file:
 
 * overhaul localstorage

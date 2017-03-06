@@ -45,11 +45,14 @@ Total Ordering based on the "storage" numbers:
 "Metadata":
 * Version 1: .metadata: [uint64_t timestamp, Cstring group, Cstring origin,
   bool isApp] where group and origin have what is now referred to as the
-  "jar prefix" crammed on the front.
+  "jar prefix" crammed on the front.  Note that modern QM will still create
+  these files currently and goes out of its way to drop the suffixes.
 * Version 2: .metadata-v2: [(u)int64_t timestamp, bool false (reserved for
   navigator.persist()), reserved data 1: 32bit 0, reserved data 2: 32bit 0,
-  Cstring suffix, Cstring group, Cstring origin, bool isApp]. As indicated by
-  the suffix, the origin
+  Cstring suffix, Cstring group, Cstring origin, bool isApp].  Both the origin
+  and the group include the suffix.  I think the separate storage of the suffix
+  is an evolutionary glitch; initially the origin was retrieved as
+  OriginNoSuffix but that changed in bug 1195930 at some point.
 
 "Storage":
 * Version 0: (anything before version 1)

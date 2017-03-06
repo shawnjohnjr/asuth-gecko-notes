@@ -1,4 +1,37 @@
+## Patch Explanation ##
+
+SPECULATIVE:
+
+
+
+
 ## Patch cleanup to-do's ##
+
+### The assumption in HttpChannelParentListener::ResetInterception ###
+There's a paranoia check against mInterceptedChannel.  With a comment wondering
+how the reset could happen after ActorDestroy.
+
+Possibilities:
+* HttpChannelParentListener::FinishSynthesizeResponse nulls out
+  mInterceptedChannel, passing it off to a FinishSynthesizedResponse runnable
+  which does NS_DispatchToCurrentThread().
+  * Invoked by FinishSynthesizeOnMainThread runnable,
+* ClearInterceptedChannel(caller) nulls out mInterceptedChannel if the caller
+  lines up.
+  * This is invoked by HttpChannelParent::ActorDestroy.
+
+Its ResetInterception happens via (going backwards in time):
+* HttpChannelParent::RecvResetInterception invokes the listener's reset.
+* HttpChannelChild::ResetInterception invokes SendResetInterception, asserting
+  mResponseCouldBeSynthesized and clearing (but not guarding).
+* InterceptedChannelContent::ResetInterception() gets called, and checks/sets
+  the mClosed guard, invoking HttpChannelChild::ResetInterception.
+* One of the following callers is expected:
+  * SWP's FetchEventRunnable::ResumeRequest (on main thread).
+  * SWP::SendFetchEvent on !registration (race), !mInfo->HandlesFetch(), or in
+    the saved-off failRunnable.
+  * SWM's ContinueDispatchFetchEventRunnable's HandleError method invokes it if
+    the channel is doing funky things.
 
 ### Test issues ###
 
@@ -30,7 +63,7 @@ Fixed:
   * analysis:
     * the assertion was unsound.  converted to an additional condition check.
 
-## OLD! How stuff works pre-Josh 1231222
+## (From Rev1 patch but not obsolete) How stuff works pre-Josh 1231222
 
 ### The Players
 
@@ -43,7 +76,7 @@ sanity, service workers only work on HTTPS!)
 
 InterceptedChannel
 * InterceptedChannelChrome: Chrome/parent process half, holds nsHttpChannel.
-* InterceptedChanelContent: Content process half, holds HttpChannelChild
+* InterceptedChannelContent: Content process half, holds HttpChannelChild
 
 InterceptStreamListener: Content process shim that listens to the
 InterceptedChannelContent and
@@ -183,7 +216,7 @@ IPC-transport variants:
   NS_QueryNotificationCallbacks with shoddy fallback.  nsIWebSocketChannel does
   the query but without fallback.
 
-## Josh's Interception changes, bug 1231222 ##
+## Josh's OLD PATCH OBSOLETE Interception changes, bug 1231222 ##
 
 ### Overview ###
 

@@ -1,0 +1,56 @@
+sequenceDiagram
+participant nsHttpChannel
+participant InterceptedChannelChrome
+participant HttpChannelParentListener
+participant HttpChannelParent
+participant HttpChannelChild
+participant InterceptedChannelContent
+participant nsDocShell
+
+%% Check whether interception is appropriate in parent.
+Note right of nsHttpChannel: AsyncOpen()
+nsHttpChannel->>HttpChannelParentListener: ShouldPrepareForIntercept
+Note right of HttpChannelParentListener: Yes if sub-resource and mShouldIntercept from child, or if SWM::IsAvailable().
+
+%% Interception begins in parent.
+Note right of nsHttpChannel: OpenCacheEntry()
+nsHttpChannel->>+InterceptedChannelChrome: new()
+nsHttpChannel->>InterceptedChannelChrome: NotifyController
+Note right of InterceptedChannelChrome: mResponseBody opened from mSynthesizedCacheEntry
+InterceptedChannelChrome->>HttpChannelParentListener: ChannelIntercepted
+
+%% Handoff to child
+HttpChannelParentListener-->>HttpChannelChild: DispatchFetchEvent
+
+
+HttpChannelChild->>+InterceptedChannelContent: new()
+HttpChannelChild->>InterceptedChannelContent: NotifyController
+InterceptedChannelContent->>+nsDocShell: ChannelIntercepted
+Note right of nsDocShell: ServiceWorker processes fetch until respondWith() invoked.
+nsDocShell->>InterceptedChannelContent: GetResponseBody
+activate nsDocShell
+Note right of nsDocShell: SW NS_AsyncCopy to stream.
+nsDocShell->>InterceptedChannelContent: FinishSynthesizedResponse
+deactivate nsDocShell
+deactivate nsDocShell
+InterceptedChannelContent->>HttpChannelChild: FinishSynthesizedResponse
+deactivate InterceptedChannelContent
+
+%% Response goes to parent
+HttpChannelChild-->>HttpChannelParent: SynthesizeResponse
+HttpChannelParent ->> HttpChannelParentListener: SynthesizeResponse
+HttpChannelParentListener ->> InterceptedChannelChrome: GetResponseBody
+activate HttpChannelParentListener
+Note right of HttpChannelParentListener: NS_AsyncCopy
+HttpChannelParentListener ->> HttpChannelParent: ResponseSynthesized
+deactivate HttpChannelParentListener
+Note right of HttpChannelParent: MaybeFlushPendingDiversion()
+HttpChannelParentListener ->> InterceptedChannelChrome: FinishSynthesizedResponse
+InterceptedChannelChrome ->> nsHttpChannel: MarkIntercepted
+alt redirect
+InterceptedChannelChrome ->> nsHttpChannel: StartRedirectChannelToURI
+else not redirect
+InterceptedChannelChrome ->> nsHttpChannel: OpenCacheEntry
+InterceptedChannelChrome ->> nsHttpChannel: ContinueConnect
+end
+deactivate InterceptedChannelChrome
