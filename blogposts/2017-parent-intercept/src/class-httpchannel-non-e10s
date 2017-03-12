@@ -1,4 +1,0 @@
-classDiagram
-nsIChannel <|-- nsIHttpChannel
-nsIHttpChannel <|-- HttpBaseChannel
-HttpBaseChannel <|-- nsHttpChannel
