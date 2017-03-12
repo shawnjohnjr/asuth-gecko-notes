@@ -1,0 +1,20 @@
+graph BT
+
+subgraph Parent
+PHttpChannelParent --> HttpChannelParent
+end
+
+subgraph non-e10s
+nsHttpChannel --> HttpBaseChannel
+HttpBaseChannel --> nsIHttpChannel
+nsIHttpChannel --> nsIChannel
+end
+
+subgraph Child
+HttpChannelChild --> PHttpChannelChild
+end
+
+HttpChannelChild -->|WEAK| HttpBaseChannel
+HttpChannelParent -->|WEAK| nsHttpChannel
+
+PHttpChannelChild -.->|WEAK| PHttpChannelParent

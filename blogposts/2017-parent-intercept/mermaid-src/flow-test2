@@ -1,0 +1,25 @@
+%% Subgraph example
+graph BT
+
+subgraph Parent
+PHttpChannelParent --> HttpChannelParent
+end
+
+subgraph non-e10s
+nsHttpChannel --> HttpBaseChannel
+HttpBaseChannel --> nsIHttpChannel
+nsIHttpChannel --> nsIChannel
+end
+
+subgraph Child
+HttpChannelChild --> PHttpChannelChild
+end
+
+nsIChannel -->|HEAVY| BogusRoot
+HttpChannelParent -->|HEAVY| BogusRoot
+PHttpChannelChild -->|HEAVY| BogusRoot
+
+HttpChannelChild --> HttpBaseChannel
+HttpChannelParent --> nsHttpChannel
+
+PHttpChannelChild -.-> PHttpChannelParent

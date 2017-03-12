@@ -1,0 +1,43 @@
+<svg version="1.1" baseProfile="full" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events" style="font-weight:bold; font-size:12pt; font-family:'Calibri', Helvetica, sans-serif;;stroke-width:1;stroke-linejoin:round;stroke-linecap:round"><path d="M111.2 146.5 L89.7 226.5 " style="stroke:#33322E;fill:none;"></path>
+<path d="M88 212.2 L91.4 220.1 L98.3 215 L89.7 226.5 Z" style="stroke:#33322E;fill:#33322E;"></path>
+<path d="M35 29 L174.5 29 " style="stroke:#33322E;fill:none;"></path>
+<path d="M48.3 23.7 L41.7 29 L48.3 34.3 L35 29 Z" style="stroke:#33322E;fill:#33322E;"></path>
+<path d="M87.4 155.5 L92.1 115.5 " style="stroke:#33322E;fill:none;"></path>
+<path d="M83.6 141.6 L88.9 142.3 L94.2 142.9 L87.4 155.5 Z" style="stroke:#33322E;fill:#eee8d5;"></path>
+<rect x="13.5" y="69.5" height="190" width="238" style="stroke:#33322E;fill:#eee8d5;"></rect>
+<text x="107" y="91" style="">Parent</text>
+<path d="M13.5 100.5 L251.5 100.5" style="stroke:#33322E;fill:none;"></path>
+<path d="M132.5 144.5 L132.5 164.5 L132.5 184.5 L132.5 184.5 " style="stroke:#33322E;fill:none;"></path>
+<path d="M137.8 157.8 L132.5 157.8 L127.2 157.8 L132.5 144.5 Z" style="stroke:#33322E;fill:#eee8d5;"></path>
+<rect x="48.5" y="113.5" height="31" width="169" style="stroke:#33322E;fill:#fdf6e3;"></rect>
+<text x="56.5" y="135" style="">PHttpChannelParent</text>
+<rect x="26.5" y="184.5" height="62" width="212" style="stroke:#33322E;fill:#fdf6e3;"></rect>
+<text x="60.3" y="206" style="">HttpChannelParent</text>
+<path d="M26.5 215.5 L238.5 215.5" style="stroke:#33322E;fill:none;"></path>
+<text x="34.5" y="237" style="">mChannel: nsHttpChannel</text>
+<rect x="291.5" y="13.5" height="301" width="170" style="stroke:#33322E;fill:#eee8d5;"></rect>
+<text x="342.5" y="35" style="">non-e10s</text>
+<path d="M291.5 44.5 L461.5 44.5" style="stroke:#33322E;fill:none;"></path>
+<path d="M376.5 88.5 L376.5 108.5 L376.5 128.5 L376.5 128.5 " style="stroke:#33322E;fill:none;"></path>
+<path d="M381.8 101.8 L376.5 101.8 L371.2 101.8 L376.5 88.5 Z" style="stroke:#33322E;fill:#eee8d5;"></path>
+<path d="M376.5 159.5 L376.5 179.5 L376.5 199.5 L376.5 199.5 " style="stroke:#33322E;fill:none;"></path>
+<path d="M381.8 172.8 L376.5 172.8 L371.2 172.8 L376.5 159.5 Z" style="stroke:#33322E;fill:#eee8d5;"></path>
+<path d="M376.5 230.5 L376.5 250.5 L376.5 270.5 L376.5 270.5 " style="stroke:#33322E;fill:none;"></path>
+<path d="M381.8 243.8 L376.5 243.8 L371.2 243.8 L376.5 230.5 Z" style="stroke:#33322E;fill:#eee8d5;"></path>
+<rect x="326.5" y="57.5" height="31" width="101" style="stroke:#33322E;fill:#fdf6e3;"></rect>
+<text x="334.5" y="79" style="">nsIChannel</text>
+<rect x="309.5" y="128.5" height="31" width="135" style="stroke:#33322E;fill:#fdf6e3;"></rect>
+<text x="317.5" y="150" style="">nsIHttpChannel</text>
+<rect x="304.5" y="199.5" height="31" width="144" style="stroke:#33322E;fill:#fdf6e3;"></rect>
+<text x="312.8" y="221" style="">HttpBaseChannel</text>
+<rect x="313.5" y="270.5" height="31" width="127" style="stroke:#33322E;fill:#fdf6e3;"></rect>
+<text x="321.8" y="292" style="">nsHttpChannel</text>
+<rect x="501.5" y="84.5" height="159" width="187" style="stroke:#33322E;fill:#eee8d5;"></rect>
+<text x="573.8" y="106" style="">Child</text>
+<path d="M501.5 115.5 L688.5 115.5" style="stroke:#33322E;fill:none;"></path>
+<path d="M595 159.5 L595 179.5 L595 199.5 L595 199.5 " style="stroke:#33322E;fill:none;"></path>
+<path d="M600.3 172.8 L595 172.8 L589.7 172.8 L595 159.5 Z" style="stroke:#33322E;fill:#eee8d5;"></path>
+<rect x="514.5" y="128.5" height="31" width="161" style="stroke:#33322E;fill:#fdf6e3;"></rect>
+<text x="522.8" y="150" style="">PHttpChannelChild</text>
+<rect x="519.5" y="199.5" height="31" width="152" style="stroke:#33322E;fill:#fdf6e3;"></rect>
+<text x="527.5" y="221" style="">HttpChannelChild</text></svg>

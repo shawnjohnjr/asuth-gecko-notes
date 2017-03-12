@@ -1,0 +1,13 @@
+classDiagram
+nsIChannel <|-- nsIHttpChannel
+nsIHttpChannel <|-- HttpBaseChannel
+HttpBaseChannel <|-- nsHttpChannel
+
+PHttpChannelParent <|-- HttpChannelParent
+HttpChannelParent : nsHttpChannel mChannel
+HttpChannelParent --* nsHttpChannel
+
+PHttpChannelChild <|-- HttpChannelChild
+HttpBaseChannel <|-- HttpChannelChild
+
+PHttpChannelParent <-- PHttpChannelChild

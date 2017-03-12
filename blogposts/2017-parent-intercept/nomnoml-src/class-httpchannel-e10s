@@ -1,0 +1,22 @@
+#lineWidth: 1
+
+[Parent |
+  [PHttpChannelParent] <:- [HttpChannelParent]
+  [HttpChannelParent | mChannel: nsHttpChannel]
+]
+
+[non-e10s |
+  [<abstract>nsIChannel] <:- [<abstract>nsIHttpChannel]
+  [nsIHttpChannel] <:- [HttpBaseChannel]
+  [HttpBaseChannel] <:- [nsHttpChannel]
+]
+
+[Child |
+  [PHttpChannelChild] <:- [HttpChannelChild]
+]
+
+[CROSS-SCOPE |
+  [HttpChannelParent] -> [nsHttpChannel]
+  [PHttpChannelParent] <-- [PHttpChannelChild]
+  [HttpBaseChannel] <:- [HttpChannelChild]
+]

@@ -1,0 +1,26 @@
+graph LR
+  classDef thread fill:#ffe
+  subgraph Parent Process
+    subgraph Main Thread
+      PContentParent
+      subgraph Runnables
+        CheckPrincipalWithCallbackRunnable:Check
+      end
+    end
+    subgraph PBackground Thread
+      ServiceWorkerManagerService
+      ServiceWorkerManagerParent
+      subgraph Runnables
+        RegisterServiceWorkerCallback
+        UnregisterServiceWorkerCallback
+        CheckPrincipalWithCallbackRunnable:Callback
+      end
+    end
+  end
+  subgraph Child Process
+    subgraph Main Thread
+      PContentChild
+    end
+  end
+  PContentParent --> PContentChild
+  %% ServiceWorkerManagerService --- ServiceWorkerManagerParent
