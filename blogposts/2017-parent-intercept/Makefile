@@ -21,22 +21,18 @@ MERMAID_OUTFILES := $(patsubst %,%.svg,$(patsubst $(MERMAID_SRCDIR)/%,$(MERMAID_
 USE_CSS := $(MERMAID_ROOT)/dist/mermaid.css
 WIDTH := 1400
 
-### NOMNOML
-# (And yes, I do know how to avoid the copy-paste stuff here, but that gets
-# confusing fast.)
-NOMNOML := nomnoml-cli.js
-NOMNOML_PIERCED := $(realpath $(shell which $(NOMNOML)))
-NOMNOML_ROOT := $(abspath $(dir $(NOMNOML_PIERCED))..)
+### graphviz (dot)
+DOT := dot
 
-NOMNOML_SRCDIR := nomnoml-src
-NOMNOML_OUTDIR := rendered
+DOT_SRCDIR := dot-src
+DOT_OUTDIR := rendered
 
-NOMNOML_SRCFILES := $(wildcard $(NOMNOML_SRCDIR)/*)
+DOT_SRCFILES := $(wildcard $(DOT_SRCDIR)/*.dot)
 # And their corresponding output file is rendered/FOO.svg
-NOMNOML_OUTFILES := $(patsubst %,%.svg,$(patsubst $(NOMNOML_SRCDIR)/%,$(NOMNOML_OUTDIR)/%,$(NOMNOML_SRCFILES)))
+DOT_OUTFILES := $(patsubst %.dot,%.svg,$(patsubst $(DOT_SRCDIR)/%,$(DOT_OUTDIR)/%,$(DOT_SRCFILES)))
 
 ### Build Rules, extra deps
-OUTFILES := $(MERMAID_OUTFILES) $(NOMNOML_OUTFILES)
+OUTFILES := $(MERMAID_OUTFILES) $(DOT_OUTFILES)
 default: $(OUTFILES)
 
 $(OUTFILES): Makefile
@@ -45,12 +41,17 @@ $(MERMAID_OUTFILES): seq.cfg
 $(MERMAID_OUTFILES): $(MERMAID_OUTDIR)/%.svg: $(MERMAID_SRCDIR)/%
 	$(MERMAID) --svg --css $(USE_CSS) --sequenceConfig seq.cfg --width $(WIDTH) --outputDir $(MERMAID_OUTDIR) $<
 
-$(NOMNOML_OUTFILES): $(NOMNOML_OUTDIR)/%.svg: $(NOMNOML_SRCDIR)/%
-	$(NOMNOML) $< $@
+$(DOT_OUTFILES): $(DOT_OUTDIR)/%.svg: $(DOT_SRCDIR)/%.dot
+	$(DOT) -Tsvg $< > $@
+
+# The '-' prefix causes make to not care about the return value.  The -f arg to
+# rm ensures it's not sad if the wildcard doesn't match anything.
+clean:
+	-rm -f $(MERMAID_OUTDIR)/* $(DOT_OUTDIR)/*
 
 .PHONY: huh
 huh:
 	echo "Mermaid root is: $(MERMAID_ROOT)"
 	echo "Mermaid using CSS: $(USE_CSS)"
 	echo ""
-	echo "nomnoml root is $(NOMNOML_ROOT)"
+	echo "DOT root is $(DOT_ROOT)"

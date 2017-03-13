@@ -29,11 +29,11 @@ InterceptedChannelContent->>+nsDocShell: ChannelIntercepted
 Note right of nsDocShell: ServiceWorker processes fetch until respondWith() invoked.
 nsDocShell->>InterceptedChannelContent: GetResponseBody
 activate nsDocShell
-Note right of nsDocShell: SW NS_AsyncCopy to stream.
+Note right of nsDocShell: SW NS_AsyncCopy to returned output stream.
 nsDocShell->>InterceptedChannelContent: FinishSynthesizedResponse
 deactivate nsDocShell
 deactivate nsDocShell
-InterceptedChannelContent->>HttpChannelChild: FinishSynthesizedResponse
+InterceptedChannelContent->>HttpChannelChild: SynthesizeResponse
 deactivate InterceptedChannelContent
 
 %% Response goes to parent

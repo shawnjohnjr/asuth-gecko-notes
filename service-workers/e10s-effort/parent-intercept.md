@@ -1,6 +1,294 @@
+## Further Patch Cleanup Maybe ##
+
+* HttpChannelChild::FinishInterceptedRedirect no longer seems to have a reason
+  to exist.  Previously it existed to re-invoke AsyncOpen2/AsyncOpen after the
+  redirect.
+  * Along those lines, the following state variables that only existed for it
+    can be removed:
+    * mInterceptingChannel
+    * mInterceptedRedirectListener
+    * mInterceptedRedirectContext
+
 ## Patch Explanation ##
 
-SPECULATIVE:
+Maybe background:
+* Complexity of redirects?  Diversions?
+  * Diversions are a means of transferring a child channel back to the parent.
+    Only seems to be used for cert importing initiated in the child.
+    (PSMContentDownloader)
+  * Redirects and resets:
+    * REDIRECT_INTERCEPTION_RESET can cause LOAD_BYPASS_SERVICE_WORKER
+  * Redirects:
+    * SetupReplacementChannel.  A new channel gets created!
+
+Interception states and/or flow chart?:
+* Request w/bypass -> No intercept
+* Normal request -> maybe -> ask SWM
+  * yes SWM -> dispatch event -> ask SW content code, responds via respondWith
+    * yes -> intercepted w/response
+    * no -> reset, not intercepted
+  * no -> reset, not intercepted
+
+Core explanation thesis:
+* Previously, the call to ContinueAsyncOpen() would be deferred until the right
+  thing to do was known.
+  * AsyncOpen would bail out if it took the interception path and not call
+    ContinueAsyncOpen.
+  * It would eventually be called if/when:
+    * DivertToParent would invoke if mSynthesizedResponse &&
+      !RemoteChannelExists().  In this case the actor was actually needed.
+    * ResetInterception() is called, since then we're going to the network.
+    * OverrideWithSynthesizedResponse is invoked and WillRedirect(aResponseHead)
+      (which becomes mResponseHead) is true.  In this case,
+      mShouldInterceptSubsequentRedirect also gets set.
+* Extra complication on that crazyness in the form of mShouldParentIntercept.
+  Need to understand better, but in short, it seems like the parent gets
+  involved just so that it can be cut out of the loop again afterwards.
+  (In particular, SetupRedirect is the one to call ForceIntercepted(bool, bool)
+  which sets mShouldParentIntercept.  It conditionally does that based on
+  the mShouldInterceptSubsequentRedirect flag from
+  OverrideWithSynthesizedResponse and with explicit mRedirectMode and
+  ShouldInterceptURI.  I'm not quite clear
+
+Abandoned explanation theses:
+* Previously, AsyncOpen would immediately instantiate an
+  InterceptedChannelContent instance and notify the controller that it was being
+  controller.  Problem is this actually was the right decision there.  So it's
+  got more to do with book-keeping than this.  Possibly with a shift of
+  responsibility to the parent.
+
+## New Patch Change Notes ##
+
+### Mechanical ###
+
+
+NeckoChannelParams.ipdlh *pending*
+* removed from HttpChannelOpenArgs:
+  * synthesizedResponseHead (OptionalHttpResponseHead): moved to the
+    PHttpChannel SynthesizeResponse message.
+  * synthesizedSecurityInfoSerialization (nsCString): ditto moved.
+  * suspendAfterSynthesizeResponse (bool): *dunno*
+* removed from HttpChannelConnectArgs:
+  * shouldIntercept (bool)
+* added to HttpChannelOpenArgs:
+  * redirectMode (uint32_t)
+  * isIntercepted (bool)
+
+PHttpChannel.ipdl *pending*
+* Redirect2Verify:
+  * gained "bool shouldIntercept" argument
+* new to-parent messages:
+  * SynthesizeResponse(nsHttpResponseHead head, InputStreamParams body,
+    nsCString securityInfoSerialization, nsCString finalURLSpec)
+    * `head` and `securityInfoSerialization` migrated from HttpChannelOpenArgs.
+  * ResetInterception()
+* new to-child messages:
+  * DispatchFetchEvent()
+* removed bi-directional messages:
+  * FinishInterceptedRedirect()
+    * bi-directional because it's a ping-pong message to ensure processing is
+      flushed; child initiates, parent echoes and guarantees not to say more
+      stuff, then child deletes itself.
+
+nsIHttpChannelChild.idl *pending*
+* removed forceIntercepted(bool postRedirectChannelShouldIntercept,
+  bool postRedirectChannelShouldUpgrade)
+
+InterceptedChannel.h *pending*
+* InterceptedChannelContent
+  * Removed `RefPtr<InterceptStreamListener> mStreamListener` in favor of
+    `nsCOMPtr<nsIStorageStream> mStorageStream`.
+  * Removed the `InterceptedStreamListener* aListener` argument from
+    InterceptedChannelContent's public constructor.
+
+InterceptedChannel.cpp *pending*
+* InterceptedChannelContent
+  * Constructor no longer takes/save aListener consistent with header changes.
+  * NotifyController() now creates a storage stream instead of a pipe so that it
+    can be serialized. **spinoff and document it**
+  * FinishSynthesizedResponse(aFinalURLSpec)
+    * pre-patch:
+      * Handle URI-ification of aFinalURLSpec and/or secure upgrade of the
+        original URI.
+      * Compare URIs and if not the same and therefore a redirect, invoke
+        mChannel->ForceIntercepted() and BeginNonIPCRedirect().  If the same
+        mChannel->OverrideWithSynthesizedResponse().
+    * post-patch:
+      * If !WillRedirect(mSynthesizedResponseHead), disables conversion via
+        mChannel->SetApplyConversion(false).  *why*
+      * Unconditionally invokes mChannel->SynthesizeResponse(...)
+  * Cancel, pre-patch: null out mStreamListener (now gone)
+
+
+HttpBaseChannel.cpp *pending*
+* removed call to DoNotifyListenerCleanup() from DoNotifyListener().
+
+nsHttpChannel.cpp *pending*
+* ProcessFallback:
+  * propagate LOAD_BYPASS_SERVICE_WORKER from newChannel's loadFlags to
+    newLoadFlags.
+* OpenCacheEntry:
+  * the fresh InterceptedChannelChrome's NotifyController method is deferred to
+    a subsequent turn of the main thread event loop.  *what thread is
+    OpenCacheEntry invoked on?*
+
+HttpChannelChild.h
+* HttpChannelChild
+  * Add:
+    * SynthesizeResponse(aSynthesizedResponseHead, aSynthesizedBody,
+      aFinalURLSpec)
+    * RecvDispatchFetchEvent
+  * Remove:
+    * RecvFinishInterceptedRedirect
+    * OverrideRunnable
+    * ShouldInterceptURI(aURI, aShouldUpgrade)
+    * OverrideWithSynthesizedResponse
+    * ForceIntercepted
+    * mInterceptListener (InterceptStreamListener)
+    * mSynthesizedResponsePump (nsInputStreamPump)
+    * mSynthesizedInput (nsIInputStream)
+    * mSynthesizedStreamLength (int64_t)
+    * mSynthesizedResponse
+    * mShouldInterceptSubsequentRedirect
+    * mRedirectingForSubsequentSynthesizedResponse
+    * mPostRedirectChannelShouldIntercept: was used in AsyncOpen to bypass the
+      ShouldInterceptURI check.  Set by HttpChannelChild::ForceIntercepted (now
+      gone) which would be set true in HttpChannelChild::SetupRedirect if the
+      mode was redirect and ShouldInterceptURI said the redirected URI should
+      be intercepted.  ShouldInterceptURI also would have shouldUpgrade mutated
+      as a side-effect, which would also be passed to ForceIntercepted to flag
+      the mPostRedirectChannelShouldUpgrade variable.
+    * mPostRedirectChannelShouldUpgrade
+    * mShouldParentIntercept
+    * mSuspendParentAfterSynthesizeResponse
+    * mOverrideRunnable
+    * BeginNonIPCRedirect(responseURI, responseHead)
+    * InterceptStreamListener: ?fakes out listener?
+  * Modified:
+    * Redirect3Complete lost its aRunnable argument
+
+HttpChannelChild.cpp
+* removed InterceptStreamListener implementation which:
+  * takes the nsIStreamListener OnFoo events and calls DoOnFoo on the
+    HttpChannelChild owner.
+  * Specifically, propagated the following to the HttpChannelChild mOwner:
+    OnStartRequest, OnStatus, OnProgress, OnDataAvailable w/synthetic OnStatus
+    and OnProgress if the load flags didn't include LOAD_BACKGROUND,
+    OnStopRequest w/DoPreOnStopRequest and un-guarded Cleanup().
+* HttpChannelChild
+  * constructor lost 0-initialized mSynthesizedStreamLength, false-initialized:
+    mSynthesizedResponse, mShouldInterceptSubsequentRedirect,
+    mRedirectingForSubsequentSynthesizedResponse,
+    mPostRedirectChannelShouldIntercept, mPostRedirectChannelShouldUpgrade,
+    mShouldParentIntercept, mSuspendParentAfterSynthesizeResponse
+  * constructor gained false-initialized mResponseIsSynthesized
+  * added RecvDispatchFetchEvent:
+    * sets mResponseCouldBeSynthesized = true
+    * Gets the nsINetworkInterceptedController, creates an
+      InterceptedChannelContent that takes the controller as an arg, and invokes
+      intercepted->NotifyController.
+* Loses anonymous-namespaced SyntheticDiversionListener is-a nsIStreamListener,
+  see DoOnStartRequest deets just below.
+* HttpChannelChild
+  * DoOnStartRequest no longer creates a SyntheticDiversionListener if
+    mSynthesizedResponse (now removed!) was truthy.  The class...
+    * Existed for benefit of HttpChannelChild.  Its...
+      * OnStopRequest invokes HttpChannelChild::SendDivertOnStopRequest
+      * OnDataAvailable reads the data, and sends it up with
+        HttpChannelChild::SendDivertOnDataAvailable.
+    * In summary, it bounces all the data up to the parent.
+  * DoNotifyListenerCleanup emptied out, removing code that would invoke
+    mInterceptListener->Cleanup() and null it out if not already null.
+  * OverrideRunnable inner class removed.
+    * This was instantiated by OnRedirectVerifyCallback if
+      mRedirectingForSubsequentSynthesizedResponse.
+    * It existed to invoke Redirect3Complete.  Plus error handling if that
+      failed due to teardown/reopening, invoking OverrideWithSynthesizedResponse
+      to get things going again.
+  * RecvFinishInterceptedRedirect removed.  Part of the removed ping-pong IPC
+    teardown.
+  * SetupRedirect removed the logic that called ForceIntercepted(bool, bool)
+    which would set mShouldParentIntercept to true which would cause the
+    request to not hit the network in the parent.  The
+    mShouldInterceptSubsequentRedirect check would be true if there was a call
+    to OverrideWithSynthesizedResponse and WillRedirect(aResponseHead) was true.
+    The latter check is on the redirect mode and ShouldInterceptURI(), with the
+    check result being saved off.
+  * BeginNonIPCRedirect removed.  Its caller was InterceptedChannelContent's
+    FinishSynthesizedResponse if the final URL and original did not match.  It:
+    * Called SetupRedirect (see above)
+    * Directly propagated mSecurityInfo via
+      OverrideSecurityInfoForNonIPCRedirect which is just below.
+    * Called nsHttpHandler::AsyncOnChannelRedirect with the old channel and
+      the new channel and nsIChannelEventSink::REDIRECT_INTERNAL.  That method
+      punts over to nsAsyncRedirectVerifyHelper which self-dispatches itself to
+      the main thread and will asynchronously do some stuff, especially if
+      there's an nsIChannelEventSink.  *is there an nsIChannelEventSink?*  Once
+      that's done, the old channel's
+      nsIAsyncVerifyRedirectCallback::OnRedirectVerifyCallback gets invoked.
+      (Which still exists.)
+  * OverrideSecurityInfoForNonIPCRedirect removed, which was called by the
+    above now-removed BeginNonIPCRedirect.  It also set
+    mResponseCouldBeSynthesized as a side-effect.  (Otherwise that would be
+    set in AsyncOpen in the intercept path.)
+  * Redirect3Complete(OverrideRunnable* aRunnable) lost its argument and
+    the Redirect3Event helper was accordingly updated to not need to pass null.
+    Also, minor changes:
+    * mOverrideRunnable (removed) no longer set or cleared.
+    *
+
+  * AsyncOpen lost core intercept checking and specialized handling, namely:
+    * Decision check on whether intercept can/should happen:
+      * mPostRedirectChannelShouldIntercept which got set in SetupRedirect and
+        which already ran the ShouldInterceptURI check as part of that change.
+      * A call to ShouldInterceptURI is made.
+    * Handling:
+      * An InterceptStreamListener and InterceptedChannelContent were created,
+        with the InterceptStreamListener passed to InterceptedChannelContent to
+        listen to its events and call HttpChannelChild->DoOnFoo for each OnFoo
+        event received.
+      * intercepted->NotifyController() got invoked too which in the normal case
+        exists to just call nsINetworkInterceptController::ChannelIntercepted,
+        but with error handling to invoke ResetInterception().
+      * The InterceptChannelContent instance is now created and
+        NotifyController() invoked in RecvDispatchFetchEvent.  There's no
+        listener anymore, consistent with changes to InterceptChannelContent.
+  * ContinueAsyncOpen (which sends the openArgs to the parent):
+    * now propagates redirectMode() from mRedirectMode and isIntercepted() via
+      ShouldIntercept(mURI).  ShouldIntercept asks the
+      nsINetworkInterceptController which is nsDocShell and which will always
+      return true in the child process for navigations, and return true if the
+      local ServiceWorkerManager says the document is controlled.
+    * removed:
+      * mResponseHead handling that initialized the now-removed
+        synthesizedResponseHead() and suspendAfterSynthesizeResponse().
+      * The synthesizedSecurityInfoSerialization()
+  * DivertToParent:
+    * removed special-handling where mSynthesizedResponse (now removed) was true
+      and !RemoteChannelExists(), setting mSuspendParentAfterSynthesizeResponse
+      (now removed), so it could be propagated in the OpenArgs.
+  * ResetInterception:
+    * Previously, would cleanup mInterceptListener (which propagated events),
+      set LOAD_BYPASS_SERVICE_WORKER, and then ContinueAsyncOpen() (which had
+      been skipped when AsyncOpen decided to intercept).
+  * OverrideWithSynthesizedResponse removed.  It used to:
+  * ForceIntercepted(bool, bool)'s mPostRedirectChannelShouldIntercept,
+    mPostRedirectChannelShouldUpgrade-setting signature removed.  Also set
+    mShouldParentIntercept to true.  This variant was used by SetupRedirect()
+    and used to tell the parent to not hit the network. *redirect parent junk*
+  *
+
+
+
+Still pending notes:
+* nsDocShell.cpp
+* fetch_tests.js
+* HttpChannelChild.cpp
+* HttpChannelChild.h
+* HttpChannelParent.cpp
+* HttpChannelParent.h
+* HttpChannelParentListener.cpp
+* HttpChannelParentListener.h
 
 
 

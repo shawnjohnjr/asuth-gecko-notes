@@ -23,7 +23,7 @@ So case-wise:
 - Resolved with a registration where the given script URL may be associated with
   an active, waiting, or installing worker if the script URL was already
   registered.  The fast-path check is based on the newestWorker algorithm.  If
-  (non-register) updates are happening, the script URL may be invovled with
+  (non-register) updates are happening, the script URL may be involved with
   multiple registrations even.
 - Resolved with a registration where the given script URL is the installing
   service worker if the script URL was not already registered.

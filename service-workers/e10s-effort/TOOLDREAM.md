@@ -1,3 +1,25 @@
+## tabdrome "find"/anchor/outline awareness ##
+
+During patch/code investigation, I frequently find myself using ctrl-f to
+jump around patches, specs, dxr/searchfox code, etc.  It would be neat if the
+sidebar/tab state could provide:
+* minimap/facet/outline-esque awareness for each search result
+* a history of things searched for.  Each search term could be clicked on,
+  jumping back to the last scroll position before a new search transitioned us
+  away.
+
+One way to do this might be for the minimaps to only be displayed for the
+current search term, collapsing (by default) when another is switched to.  (But
+perhaps an explicit '+' expando could pin the result open.)
+
+It would also be great to integrate with the ctrl-f functionality (or override
+it?) so that up/down or ctrl-p/ctrl-n could be used to easily move to previous
+search terms, etc.
+
+This could also include some primitive sub-bookmarking support with notes or
+something.  (Maybe research org-mode a bit and support dumping data out to such
+a rep and/or pulling it in?  Or some hack like on how my markdown notes work.)
+
 ## treeherder try push results scraper helper ##
 
 Alternate treeherder view reminiscent of ArbPL test failure tree structure that
