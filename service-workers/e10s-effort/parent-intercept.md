@@ -9,6 +9,16 @@
     * mInterceptedRedirectListener
     * mInterceptedRedirectContext
 
+## Still To Understand ##
+
+Check the *blah* stuff too, but:
+* Redirect3Complete's no longer guarded invocation of CleanupRedirectingChannel.
+
+### The redirect and mShouldParentIntercept dance ###
+
+HttpChannelChild::CompleteRedirectSetup had a good comment here.  Basically,
+
+
 ## Patch Explanation ##
 
 Maybe background:
@@ -227,6 +237,7 @@ HttpChannelChild.cpp
       that's done, the old channel's
       nsIAsyncVerifyRedirectCallback::OnRedirectVerifyCallback gets invoked.
       (Which still exists.)
+      * And that used to create an OverrideRunnable.  *FOO*
   * OverrideSecurityInfoForNonIPCRedirect removed, which was called by the
     above now-removed BeginNonIPCRedirect.  It also set
     mResponseCouldBeSynthesized as a side-effect.  (Otherwise that would be
@@ -234,9 +245,17 @@ HttpChannelChild.cpp
   * Redirect3Complete(OverrideRunnable* aRunnable) lost its argument and
     the Redirect3Event helper was accordingly updated to not need to pass null.
     Also, minor changes:
-    * mOverrideRunnable (removed) no longer set or cleared.
-    *
-
+    * mOverrideRunnable (removed), mInterceptingChannel (fixup removing) no
+      longer set or cleared.
+    * The setting case was for mRedirectChannelChild for when, per the comment,
+      the "chrome" (really parent?) had been AsyncOpen'ed.
+      * mRedirectChannelChild is the replacement channel SetupRedirect created,
+        QI'ed to nsIChannelChild.  Its CompleteRedirectSetup method still gets
+        invoked.
+    * The CleanupRedirectingChannel() call and its comment has been moved out
+      from the mRedirectChannelChild QI'd to HttpChannelChild check that
+      amounted to: "if mShouldParentIntercept for the redirect, don't clean it
+      up yet".  This was why OverrideRunnable existed,
   * AsyncOpen lost core intercept checking and specialized handling, namely:
     * Decision check on whether intercept can/should happen:
       * mPostRedirectChannelShouldIntercept which got set in SetupRedirect and
