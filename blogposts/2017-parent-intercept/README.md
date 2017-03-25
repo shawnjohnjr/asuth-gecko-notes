@@ -4,36 +4,32 @@ Diagrams from a blog post, link to be added later afterwards.
 
 There's a number of JS-based diagramming tools out there.  These are what I
 ended up using and why:
-* http://knsv.github.io/mermaid/ - Used for sequence diagrams and flowcharts.
-  My default choice based on its:
+* graphviz - Used for non-sequence diagrams and probably any diagram involving
+  clustering.  It turns out that you really can't beat graphviz when it comes
+  to its support of clusters with cross-cluster edges and the ability to impose
+  rank constraints and zero rank weights.  And since viz.js emscripten compiles
+  it, it's an option in browsers too.
+* http://knsv.github.io/mermaid/ - Used for sequence diagrams and some
+  flowcharts.
+  Before I fell back to using graphviz more heavily because of its superior
+  clustering support over dagre, my default based on its:
   * Goals of supporting many types of documents.
   * Reasonably active core development, plus integration tooling for docbook
     and others.
   * Support of more complicated features, such as subgraphs for flowcharts and
     loops/alternatives in sequence diagrams
   * Reasonable aesthetics with support for different themes.
-* http://www.nomnoml.com/ - Used for class diagrams because:
-  * Support for nesting in packages.  Mermaid has a preliminary class diagram
-    implementation, but it did not support nested packages or namespaces and
-    adding support is somewhat non-trivial.  (nomnoml deserves many props for
-    the clean abstraction of its implementation, aided by its minimal jison
-    parser strategy.)
-  * Great aesthetics.  (Much of this may be down to the choice to not generate
-    rounded relationship edges which avoids weird curvatures.)
 
 ### How to update diagrams ###
 
 Install pre-requisites:
+* graphviz:
+  * `apt-get install graphviz` or similar for your platform.
 * mermaid:
-  * git checkout https://github.com/knsv/mermaid.git
+  * `git clone https://github.com/knsv/mermaid.git`
   * `npm install` in that checkout
   * add `mermaid/bin/mermaid.js` to your path.  I did this by adding a symlink
     to it in my `~/bin` directory that's on my path.
-* nomnoml:
-  * git checkout https://github.com/skanaar/nomnoml.git
-  * `npm install` in that checkout
-  * add `nomnoml/dist/nomnoml-cli.js` to your path.  I did this by adding a
-    symlink to it in my `~/bin` directory that's on my path.
 
 Run "make" and make sure things don't explode.
 
@@ -45,7 +41,6 @@ Then:
   * edit files, save them to disk
     * you may want to use the online editors available:
       * https://knsv.github.io/mermaid/live_editor/
-      * http://www.nomnoml.com/
   * run make
   * look at pictures.
 
