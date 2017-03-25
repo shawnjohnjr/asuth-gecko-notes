@@ -1,0 +1,356 @@
+<svg id="mermaidChart0" width="1400" height="1343.656207366985" viewBox="-50 -10 1960 1876" style="width: 1392; height: 1343.656207366985;" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><style type="text/css" title="mermaid-svg-internal-css">/* Flowchart variables */
+/* Sequence Diagram variables */
+/* Class Diagram variables */
+/* Gantt chart variables */
+.mermaid .label {
+  color: #333;
+}
+.node rect,
+.node circle,
+.node ellipse,
+.node polygon {
+  fill: #ECECFF;
+  stroke: #CCCCFF;
+  stroke-width: 1px;
+}
+.arrowheadPath {
+  fill: #333333;
+}
+.edgePath .path {
+  stroke: #333333;
+}
+.edgeLabel {
+  background-color: #e8e8e8;
+}
+.cluster rect {
+  fill: #ffffde !important;
+  rx: 4 !important;
+  stroke: #aaaa33 !important;
+  stroke-width: 1px !important;
+}
+.cluster text {
+  fill: #333;
+}
+.actor {
+  stroke: #CCCCFF;
+  fill: #ECECFF;
+}
+text.actor {
+  fill: black;
+  stroke: none;
+}
+.actor-line {
+  stroke: grey;
+}
+.messageLine0 {
+  stroke-width: 1.5;
+  stroke-dasharray: "2 2";
+  marker-end: "url(#arrowhead)";
+  stroke: #333;
+}
+.messageLine1 {
+  stroke-width: 1.5;
+  stroke-dasharray: "2 2";
+  stroke: #333;
+}
+#arrowhead {
+  fill: #333;
+}
+#crosshead path {
+  fill: #333 !important;
+  stroke: #333 !important;
+}
+.messageText {
+  fill: #333;
+  stroke: none;
+}
+.labelBox {
+  stroke: #CCCCFF;
+  fill: #ECECFF;
+}
+.labelText {
+  fill: black;
+  stroke: none;
+}
+.loopText {
+  fill: black;
+  stroke: none;
+}
+.loopLine {
+  stroke-width: 2;
+  stroke-dasharray: "2 2";
+  marker-end: "url(#arrowhead)";
+  stroke: #CCCCFF;
+}
+.note {
+  stroke: #aaaa33;
+  fill: #fff5ad;
+}
+.noteText {
+  fill: black;
+  stroke: none;
+  font-family: 'trebuchet ms', verdana, arial;
+  font-size: 14px;
+}
+/** Section styling */
+.section {
+  stroke: none;
+  opacity: 0.2;
+}
+.section0 {
+  fill: rgba(102, 102, 255, 0.49);
+}
+.section2 {
+  fill: #fff400;
+}
+.section1,
+.section3 {
+  fill: white;
+  opacity: 0.2;
+}
+.sectionTitle0 {
+  fill: #333;
+}
+.sectionTitle1 {
+  fill: #333;
+}
+.sectionTitle2 {
+  fill: #333;
+}
+.sectionTitle3 {
+  fill: #333;
+}
+.sectionTitle {
+  text-anchor: start;
+  font-size: 11px;
+  text-height: 14px;
+}
+/* Grid and axis */
+.grid .tick {
+  stroke: lightgrey;
+  opacity: 0.3;
+  shape-rendering: crispEdges;
+}
+.grid path {
+  stroke-width: 0;
+}
+/* Today line */
+.today {
+  fill: none;
+  stroke: red;
+  stroke-width: 2px;
+}
+/* Task styling */
+/* Default task */
+.task {
+  stroke-width: 2;
+}
+.taskText {
+  text-anchor: middle;
+  font-size: 11px;
+}
+.taskTextOutsideRight {
+  fill: black;
+  text-anchor: start;
+  font-size: 11px;
+}
+.taskTextOutsideLeft {
+  fill: black;
+  text-anchor: end;
+  font-size: 11px;
+}
+/* Specific task settings for the sections*/
+.taskText0,
+.taskText1,
+.taskText2,
+.taskText3 {
+  fill: white;
+}
+.task0,
+.task1,
+.task2,
+.task3 {
+  fill: #8a90dd;
+  stroke: #534fbc;
+}
+.taskTextOutside0,
+.taskTextOutside2 {
+  fill: black;
+}
+.taskTextOutside1,
+.taskTextOutside3 {
+  fill: black;
+}
+/* Active task */
+.active0,
+.active1,
+.active2,
+.active3 {
+  fill: #bfc7ff;
+  stroke: #534fbc;
+}
+.activeText0,
+.activeText1,
+.activeText2,
+.activeText3 {
+  fill: black !important;
+}
+/* Completed task */
+.done0,
+.done1,
+.done2,
+.done3 {
+  stroke: grey;
+  fill: lightgrey;
+  stroke-width: 2;
+}
+.doneText0,
+.doneText1,
+.doneText2,
+.doneText3 {
+  fill: black !important;
+}
+/* Tasks on the critical line */
+.crit0,
+.crit1,
+.crit2,
+.crit3 {
+  stroke: #ff8888;
+  fill: red;
+  stroke-width: 2;
+}
+.activeCrit0,
+.activeCrit1,
+.activeCrit2,
+.activeCrit3 {
+  stroke: #ff8888;
+  fill: #bfc7ff;
+  stroke-width: 2;
+}
+.doneCrit0,
+.doneCrit1,
+.doneCrit2,
+.doneCrit3 {
+  stroke: #ff8888;
+  fill: lightgrey;
+  stroke-width: 2;
+  cursor: pointer;
+  shape-rendering: crispEdges;
+}
+.doneCritText0,
+.doneCritText1,
+.doneCritText2,
+.doneCritText3 {
+  fill: black !important;
+}
+.activeCritText0,
+.activeCritText1,
+.activeCritText2,
+.activeCritText3 {
+  fill: black !important;
+}
+.titleText {
+  text-anchor: middle;
+  font-size: 18px;
+  fill: black;
+}
+/*
+
+
+*/
+g.classGroup text {
+  fill: black;
+  stroke: none;
+  font-family: 'trebuchet ms', verdana, arial;
+  font-size: 14px;
+}
+g.classGroup rect {
+  fill: #ECECFF;
+  stroke: #CCCCFF;
+}
+g.classGroup line {
+  stroke: #CCCCFF;
+  stroke-width: 1;
+}
+svg .classLabel .box {
+  stroke: none;
+  stroke-width: 0;
+  fill: #ECECFF;
+  opacity: 0.5;
+}
+svg .classLabel .label {
+  fill: black;
+}
+.relation {
+  stroke: grey;
+  stroke-width: 1;
+  fill: none;
+}
+.composition {
+  fill: grey;
+  stroke: grey;
+  stroke-width: 1;
+}
+#compositionStart {
+  fill: grey;
+  stroke: grey;
+  stroke-width: 1;
+}
+#compositionEnd {
+  fill: grey;
+  stroke: grey;
+  stroke-width: 1;
+}
+.aggregation {
+  fill: #ECECFF;
+  stroke: grey;
+  stroke-width: 1;
+}
+#aggregationStart {
+  fill: #ECECFF;
+  stroke: grey;
+  stroke-width: 1;
+}
+#aggregationEnd {
+  fill: #ECECFF;
+  stroke: grey;
+  stroke-width: 1;
+}
+#dependencyStart {
+  fill: grey;
+  stroke: grey;
+  stroke-width: 1;
+}
+#dependencyEnd {
+  fill: grey;
+  stroke: grey;
+  stroke-width: 1;
+}
+#extensionStart {
+  fill: #ECECFF;
+  stroke: grey;
+  stroke-width: 1;
+}
+#extensionEnd {
+  fill: #ECECFF;
+  stroke: grey;
+  stroke-width: 1;
+}
+.node text {
+  font-family: 'trebuchet ms', verdana, arial;
+  font-size: 14px;
+}
+div.mermaidTooltip {
+  position: absolute;
+  text-align: center;
+  max-width: 200px;
+  padding: 2px;
+  font-family: 'trebuchet ms', verdana, arial;
+  font-size: 12px;
+  background: #ffffde;
+  border: 1px solid #aaaa33;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 100;
+}
+</style><g/><g><line id="actor0" x1="120" y1="5" x2="120" y2="1865" class="actor-line" stroke-width="0.5px" stroke="#999"/><rect x="0" y="0" fill="#eaeaea" stroke="#666" width="240" height="65" rx="3" ry="3" class="actor"/><text x="120" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor" style="text-anchor: middle;"><tspan x="120" dy="0">ExternalHelperAppParent</tspan></text></g><g><line id="actor1" x1="390" y1="5" x2="390" y2="1865" class="actor-line" stroke-width="0.5px" stroke="#999"/><rect x="270" y="0" fill="#eaeaea" stroke="#666" width="240" height="65" rx="3" ry="3" class="actor"/><text x="390" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor" style="text-anchor: middle;"><tspan x="390" dy="0">ChannelDiverterParent</tspan></text></g><g><line id="actor2" x1="660" y1="5" x2="660" y2="1865" class="actor-line" stroke-width="0.5px" stroke="#999"/><rect x="540" y="0" fill="#eaeaea" stroke="#666" width="240" height="65" rx="3" ry="3" class="actor"/><text x="660" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor" style="text-anchor: middle;"><tspan x="660" dy="0">nsHttpChannel</tspan></text></g><g><line id="actor3" x1="930" y1="5" x2="930" y2="1865" class="actor-line" stroke-width="0.5px" stroke="#999"/><rect x="810" y="0" fill="#eaeaea" stroke="#666" width="240" height="65" rx="3" ry="3" class="actor"/><text x="930" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor" style="text-anchor: middle;"><tspan x="930" dy="0">HttpChannelParentListener</tspan></text></g><g><line id="actor4" x1="1200" y1="5" x2="1200" y2="1865" class="actor-line" stroke-width="0.5px" stroke="#999"/><rect x="1080" y="0" fill="#eaeaea" stroke="#666" width="240" height="65" rx="3" ry="3" class="actor"/><text x="1200" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor" style="text-anchor: middle;"><tspan x="1200" dy="0">HttpChannelParent</tspan></text></g><g><line id="actor5" x1="1470" y1="5" x2="1470" y2="1865" class="actor-line" stroke-width="0.5px" stroke="#999"/><rect x="1350" y="0" fill="#eaeaea" stroke="#666" width="240" height="65" rx="3" ry="3" class="actor"/><text x="1470" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor" style="text-anchor: middle;"><tspan x="1470" dy="0">HttpChannelChild</tspan></text></g><g><line id="actor6" x1="1740" y1="5" x2="1740" y2="1865" class="actor-line" stroke-width="0.5px" stroke="#999"/><rect x="1620" y="0" fill="#eaeaea" stroke="#666" width="240" height="65" rx="3" ry="3" class="actor"/><text x="1740" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor" style="text-anchor: middle;"><tspan x="1740" dy="0">ExternalHelperAppChild</tspan></text></g><defs><marker id="arrowhead" refX="5" refY="2" markerWidth="6" markerHeight="4" orient="auto"><path d="M 0,0 V 4 L6,2 Z"/></marker></defs><defs><marker id="crosshead" markerWidth="15" markerHeight="8" orient="auto" refX="16" refY="4"><path fill="black" stroke="#000000" stroke-width="1px" d="M 9,2 V 6 L16,4 Z" style="stroke-dasharray: 0px, 0px;"/><path fill="none" stroke="#000000" stroke-width="1px" d="M 0,1 L 6,7 M 6,1 L 0,7" style="stroke-dasharray: 0px, 0px;"/></marker></defs><g><rect x="1735" y="67" fill="#f4f4f4" stroke="#666" width="10" height="707" rx="0" ry="0"/></g><g><text x="1602.5" y="93" class="messageText" style="text-anchor: middle;">DivertToParent()</text><line x1="1735" y1="100" x2="1470" y2="100" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><rect x="1465" y="102" fill="#f4f4f4" stroke="#666" width="10" height="195" rx="0" ry="0"/></g><g><text x="1475" y="128" class="messageText" style="text-anchor: middle;">Suspend()</text><path d="M 1475,135 C 1535,125 1535,165 1475,155" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><rect x="1215" y="175" fill="#EDF2AE" stroke="#666" width="240" height="52" rx="0" ry="0" class="note"/><text x="1231" y="198" fill="black" class="noteText"><tspan x="1231">ChannelEventQ suspended,</tspan><tspan dy="16" x="1231">buffering data.</tspan></text></g><g><text x="927.5" y="255" class="messageText" style="text-anchor: middle;">PChannelDiverterConstructor(PHttpChannel) via NeckoParent</text><line x1="1465" y1="262" x2="390" y2="262" class="messageLine1" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="stroke-dasharray: 3px, 3px; fill: none;"/></g><g><rect x="385" y="264" fill="#f4f4f4" stroke="#666" width="10" height="475" rx="0" ry="0"/></g><g><text x="1605" y="290" class="messageText" style="text-anchor: middle;">returns: ChannelDiverterChild</text><line x1="1475" y1="297" x2="1735" y2="297" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><text x="797.5" y="325" class="messageText" style="text-anchor: middle;">SuspendForDiversion()</text><line x1="395" y1="332" x2="1200" y2="332" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><rect x="1195" y="334" fill="#f4f4f4" stroke="#666" width="10" height="359" rx="0" ry="0"/></g><g><text x="927.5" y="360" class="messageText" style="text-anchor: middle;">MessageDiversionStarted()</text><line x1="1195" y1="367" x2="660" y2="367" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><rect x="675" y="402" fill="#EDF2AE" stroke="#666" width="240" height="68" rx="0" ry="0" class="note"/><text x="691" y="425" fill="black" class="noteText"><tspan x="691">Consistency: like</tspan><tspan dy="16" x="691">nsHttpChannel's Suspend() had</tspan><tspan dy="16" x="691">been called.</tspan></text></g><g><text x="927.5" y="498" class="messageText" style="text-anchor: middle;">SuspendMessageDiversion()</text><line x1="660" y1="505" x2="1195" y2="505" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><rect x="945" y="515" fill="#EDF2AE" stroke="#666" width="240" height="36" rx="0" ry="0" class="note"/><text x="961" y="538" fill="black" class="noteText"><tspan x="961">ChannelEventQueue suspended.</tspan></text></g><g><line x1="650" y1="377" x2="1215" y2="377" stroke-width="2" stroke="#526e52" class="loopLine"/><line x1="1215" y1="377" x2="1215" y2="561" stroke-width="2" stroke="#526e52" class="loopLine"/><line x1="650" y1="561" x2="1215" y2="561" stroke-width="2" stroke="#526e52" class="loopLine"/><line x1="650" y1="377" x2="650" y2="561" stroke-width="2" stroke="#526e52" class="loopLine"/><rect x="650" y="377" fill="#526e52" stroke="none" width="50" height="20" rx="0" ry="0" class="labelBox"/><text x="657.5" y="392" fill="white" class="labelText"><tspan x="657.5">loop</tspan></text><text x="932.5" y="392" fill="black" class="loopText" style="text-anchor: middle;"><tspan x="932.5">[ nsHttpChannel::mSuspendCount times ]</tspan></text></g><g><text x="927.5" y="589" class="messageText" style="text-anchor: middle;">SuspendInternal()</text><line x1="1195" y1="596" x2="660" y2="596" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><rect x="405" y="606" fill="#EDF2AE" stroke="#666" width="240" height="52" rx="0" ry="0" class="note"/><text x="421" y="629" fill="black" class="noteText"><tspan x="421">Pumps suspended, no more</tspan><tspan dy="16" x="421">data.</tspan></text></g><g><text x="1062.5" y="686" class="messageText" style="text-anchor: middle;">SuspendForDiversion()</text><line x1="1195" y1="693" x2="930" y2="693" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><rect x="675" y="703" fill="#EDF2AE" stroke="#666" width="240" height="36" rx="0" ry="0" class="note"/><text x="691" y="726" fill="black" class="noteText"><tspan x="691">Asserts no events.</tspan></text></g><g><text x="927.5" y="767" class="messageText" style="text-anchor: middle;">DivertToParentUsing(PChannelDiverter)</text><line x1="1735" y1="774" x2="120" y2="774" class="messageLine1" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="stroke-dasharray: 3px, 3px; fill: none;"/></g><g><rect x="115" y="764" fill="#f4f4f4" stroke="#666" width="10" height="441" rx="0" ry="0"/></g><g><text x="257.5" y="802" class="messageText" style="text-anchor: middle;">DivertTo()</text><line x1="125" y1="809" x2="390" y2="809" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><rect x="385" y="811" fill="#f4f4f4" stroke="#666" width="10" height="394" rx="0" ry="0"/></g><g><text x="797.5" y="837" class="messageText" style="text-anchor: middle;">DivertTo(nsIStreamListener* this)</text><line x1="395" y1="844" x2="1200" y2="844" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><rect x="1195" y="846" fill="#f4f4f4" stroke="#666" width="10" height="359" rx="0" ry="0"/></g><g><text x="1205" y="872" class="messageText" style="text-anchor: middle;">StartDiversion()</text><path d="M 1205,879 C 1265,869 1265,909 1205,899" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><text x="660" y="937" class="messageText" style="text-anchor: middle;">OnStartRequest((nsHttpChannel *)mChannel)</text><line x1="1195" y1="944" x2="125" y2="944" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><text x="1062.5" y="972" class="messageText" style="text-anchor: middle;">DivertTo(nsIStreamListener*)</text><line x1="1195" y1="979" x2="930" y2="979" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><rect x="675" y="989" fill="#EDF2AE" stroke="#666" width="240" height="84" rx="0" ry="0" class="note"/><text x="691" y="1012" fill="black" class="noteText"><tspan x="691">Set mNextListener,</tspan><tspan dy="16" x="691">HttpChannelParent no longer</tspan><tspan dy="16" x="691">receives events, stop asserting</tspan><tspan dy="16" x="691">no events.</tspan></text></g><g><text x="1337.5" y="1101" class="messageText" style="text-anchor: middle;">FlushedForDiversion()</text><line x1="1205" y1="1108" x2="1470" y2="1108" class="messageLine1" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="stroke-dasharray: 3px, 3px; fill: none;"/></g><g><rect x="1485" y="1118" fill="#EDF2AE" stroke="#666" width="240" height="52" rx="0" ry="0" class="note"/><text x="1501" y="1141" fill="black" class="noteText"><tspan x="1501">Enqueues FlushedForDiversion</tspan><tspan dy="16" x="1501">ChannelEvent.</tspan></text></g><g><text x="1337.5" y="1198" class="messageText" style="text-anchor: middle;">DivertMessages()</text><line x1="1205" y1="1205" x2="1470" y2="1205" class="messageLine1" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="stroke-dasharray: 3px, 3px; fill: none;"/></g><g><rect x="1465" y="1195" fill="#f4f4f4" stroke="#666" width="10" height="388" rx="0" ry="0"/></g><g><text x="1475" y="1233" class="messageText" style="text-anchor: middle;">Resume()</text><path d="M 1475,1240 C 1535,1230 1535,1270 1475,1260" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><rect x="1485" y="1280" fill="#EDF2AE" stroke="#666" width="240" height="36" rx="0" ry="0" class="note"/><text x="1501" y="1303" fill="black" class="noteText"><tspan x="1501">ChannelEventQ resumed.</tspan></text></g><g><rect x="1470" y="1318" fill="#f4f4f4" stroke="#666" width="10" height="265" rx="0" ry="0"/></g><g><rect x="1485" y="1351" fill="#EDF2AE" stroke="#666" width="240" height="36" rx="0" ry="0" class="note"/><text x="1501" y="1374" fill="black" class="noteText"><tspan x="1501">Buffered data events run.</tspan></text></g><g><text x="1332.5" y="1415" class="messageText" style="text-anchor: middle;">DivertOnDataAvailable()</text><line x1="1465" y1="1422" x2="1200" y2="1422" class="messageLine1" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="stroke-dasharray: 3px, 3px; fill: none;"/></g><g><rect x="1195" y="1424" fill="#f4f4f4" stroke="#666" width="10" height="68" rx="0" ry="0"/></g><g><text x="1062.5" y="1450" class="messageText" style="text-anchor: middle;">OnDataAvailable</text><line x1="1195" y1="1457" x2="930" y2="1457" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><rect x="925" y="1459" fill="#f4f4f4" stroke="#666" width="10" height="33" rx="0" ry="0"/></g><g><text x="522.5" y="1485" class="messageText" style="text-anchor: middle;">OnDataAvailable</text><line x1="925" y1="1492" x2="120" y2="1492" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><line x1="110" y1="1326" x2="1735" y2="1326" stroke-width="2" stroke="#526e52" class="loopLine"/><line x1="1735" y1="1326" x2="1735" y2="1502" stroke-width="2" stroke="#526e52" class="loopLine"/><line x1="110" y1="1502" x2="1735" y2="1502" stroke-width="2" stroke="#526e52" class="loopLine"/><line x1="110" y1="1326" x2="110" y2="1502" stroke-width="2" stroke="#526e52" class="loopLine"/><rect x="110" y="1326" fill="#526e52" stroke="none" width="50" height="20" rx="0" ry="0" class="labelBox"/><text x="117.5" y="1341" fill="white" class="labelText"><tspan x="117.5">loop</tspan></text><text x="922.5" y="1341" fill="black" class="loopText" style="text-anchor: middle;"><tspan x="922.5">[ Buffered data events run ]</tspan></text></g><g><rect x="1485" y="1512" fill="#EDF2AE" stroke="#666" width="240" height="36" rx="0" ry="0" class="note"/><text x="1501" y="1535" fill="black" class="noteText"><tspan x="1501">FlushedForDiversion event runs.</tspan></text></g><g><text x="1332.5" y="1576" class="messageText" style="text-anchor: middle;">DivertComplete()</text><line x1="1465" y1="1583" x2="1200" y2="1583" class="messageLine1" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="stroke-dasharray: 3px, 3px; fill: none;"/></g><g><rect x="1195" y="1573" fill="#f4f4f4" stroke="#666" width="10" height="207" rx="0" ry="0"/></g><g><text x="1205" y="1611" class="messageText" style="text-anchor: middle;">ResumeForDiversion()</text><path d="M 1205,1618 C 1265,1608 1265,1648 1205,1638" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><text x="927.5" y="1676" class="messageText" style="text-anchor: middle;">MessageDiversionStop()</text><line x1="1195" y1="1683" x2="660" y2="1683" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><text x="927.5" y="1711" class="messageText" style="text-anchor: middle;">ResumeInternal()</text><line x1="1195" y1="1718" x2="660" y2="1718" class="messageLine0" stroke-width="2" stroke="black" marker-end="url(#arrowhead)" style="fill: none;"/></g><g><rect x="405" y="1728" fill="#EDF2AE" stroke="#666" width="240" height="52" rx="0" ry="0" class="note"/><text x="421" y="1751" fill="black" class="noteText"><tspan x="421">Pumps resumed, data flows</tspan><tspan dy="16" x="421">again.</tspan></text></g><g><rect x="0" y="1800" fill="#eaeaea" stroke="#666" width="240" height="65" rx="3" ry="3" class="actor"/><text x="120" y="1832.5" dominant-baseline="central" alignment-baseline="central" class="actor" style="text-anchor: middle;"><tspan x="120" dy="0">ExternalHelperAppParent</tspan></text></g><g><rect x="270" y="1800" fill="#eaeaea" stroke="#666" width="240" height="65" rx="3" ry="3" class="actor"/><text x="390" y="1832.5" dominant-baseline="central" alignment-baseline="central" class="actor" style="text-anchor: middle;"><tspan x="390" dy="0">ChannelDiverterParent</tspan></text></g><g><rect x="540" y="1800" fill="#eaeaea" stroke="#666" width="240" height="65" rx="3" ry="3" class="actor"/><text x="660" y="1832.5" dominant-baseline="central" alignment-baseline="central" class="actor" style="text-anchor: middle;"><tspan x="660" dy="0">nsHttpChannel</tspan></text></g><g><rect x="810" y="1800" fill="#eaeaea" stroke="#666" width="240" height="65" rx="3" ry="3" class="actor"/><text x="930" y="1832.5" dominant-baseline="central" alignment-baseline="central" class="actor" style="text-anchor: middle;"><tspan x="930" dy="0">HttpChannelParentListener</tspan></text></g><g><rect x="1080" y="1800" fill="#eaeaea" stroke="#666" width="240" height="65" rx="3" ry="3" class="actor"/><text x="1200" y="1832.5" dominant-baseline="central" alignment-baseline="central" class="actor" style="text-anchor: middle;"><tspan x="1200" dy="0">HttpChannelParent</tspan></text></g><g><rect x="1350" y="1800" fill="#eaeaea" stroke="#666" width="240" height="65" rx="3" ry="3" class="actor"/><text x="1470" y="1832.5" dominant-baseline="central" alignment-baseline="central" class="actor" style="text-anchor: middle;"><tspan x="1470" dy="0">HttpChannelChild</tspan></text></g><g><rect x="1620" y="1800" fill="#eaeaea" stroke="#666" width="240" height="65" rx="3" ry="3" class="actor"/><text x="1740" y="1832.5" dominant-baseline="central" alignment-baseline="central" class="actor" style="text-anchor: middle;"><tspan x="1740" dy="0">ExternalHelperAppChild</tspan></text></g></svg>

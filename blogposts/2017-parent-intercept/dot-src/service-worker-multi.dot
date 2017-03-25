@@ -1,0 +1,72 @@
+digraph G {
+  newrank = true;
+  rankdir = "TD";
+  fontname = "Sans-Serif";
+  splines = spline;
+
+  node [shape=box, fontname="Sans-Serif", fontsize=10, colorscheme=pastel28];
+  edge [dir=none]
+
+  subgraph cluster_parent {
+    label = "Parent";
+
+    subgraph cluster_p_background {
+        label = "PBackground";
+        SWMS [label="ServiceWorkerManagerService"];
+        SWM1P [label="ServiceWorkerManagerParent"];
+        SWM2P [label="ServiceWorkerManagerParent"];
+        SWMS -> SWM1P;
+        SWMS -> SWM2P;
+    }
+
+    subgraph cluster_p_mainthread {
+        label = "Main Thread";
+        SWMPP [label="ServiceWorkerManager", style=filled, fillcolor=1];
+        SWR [label="ServiceWorkerRegistrar"];
+        SWR -> SWMPP;
+    }
+  }
+
+  subgraph cluster_child1 {
+    label = "Content Child 1";
+    labeljust = l;
+
+    subgraph cluster_child1_mainthread {
+        label = "Main Thread";
+        SWM1C [label="ServiceWorkerManagerChild"];
+        SWM1 [label="ServiceWorkerManager", style=filled, fillcolor=1];
+        EP1 [label="example.com Page", style=filled, fillcolor=3];
+        SWM1C -> SWM1;
+    }
+
+    ESW1 [label="example.com ServiceWorker", style=filled, fillcolor=2];
+
+    SWM1 -> ESW1;
+    EP1 -> SWM1;
+  }
+
+  subgraph cluster_child2 {
+    label = "Content Child 2";
+    labeljust = l;
+
+    subgraph cluster_child2_mainthread {
+        label = "Main Thread"
+        SWM2C [label="ServiceWorkerManagerChild"];
+        SWM2 [label="ServiceWorkerManager", style=filled, fillcolor=1];
+        EP2 [label="example.com Page", style=filled, fillcolor=3];
+        SWM2C -> SWM2;
+    }
+
+    ESW2 [label="example.com ServiceWorker", style=filled, fillcolor=2];
+    SWM2 -> ESW2;
+    EP2 -> SWM2;
+  }
+
+  edge [style=dashed];
+  SWMS -> SWR [weight=0];
+
+  SWM2P -> SWM2C;
+  SWM1P -> SWM1C;
+
+  { rank=same; SWMS SWR }
+}

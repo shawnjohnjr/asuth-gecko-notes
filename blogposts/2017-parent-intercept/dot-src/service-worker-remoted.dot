@@ -1,0 +1,71 @@
+digraph G {
+  newrank = true;
+  rankdir = "TD";
+  fontname = "Sans-Serif";
+  splines = spline;
+
+  node [shape=box, fontname="Sans-Serif", fontsize=10, colorscheme=pastel28];
+  edge [dir=none]
+
+  subgraph cluster_parent {
+    label = "Parent";
+
+    subgraph cluster_p_mainthread {
+        label = "Main Thread";
+        SWMPP [label="ServiceWorkerManager", style=filled, fillcolor=1];
+        SWIP [label="ServiceWorkerInstanceParent", style=filled, fillcolor=6];
+        NP1 [label="NeckoParent"];
+        NP2 [label="NeckoParent"];
+        SWR [label="ServiceWorkerRegistrar"];
+        SWR -> SWMPP;
+        SWMPP -> SWIP;
+        SWMPP -> NP1;
+        SWMPP -> NP2;
+
+        { rank=same; SWMPP SWR }
+    }
+  }
+
+  subgraph cluster_child0 {
+    label = "ServiceWorker Process";
+
+    subgraph cluster_child0_mainthread {
+        label = "Main Thread";
+        SWIC [label="ServiceWorkerInstanceChild", style=filled, fillcolor=6];
+    }
+
+    ESWC [label="example.com ServiceWorker", style=filled, fillcolor=2];
+
+    SWIC -> ESWC;
+  }
+
+  subgraph cluster_child1 {
+    label = "Content Child 1";
+
+    subgraph cluster_child1_mainthread {
+        label = "Main Thread";
+        NC1 [label="NeckoChild"];
+        EP1 [label="example.com Page", style=filled, fillcolor=3];
+
+        NC1 -> EP1;
+    }
+  }
+
+  subgraph cluster_child2 {
+    label = "Content Child 2";
+
+    subgraph cluster_child2_mainthread {
+        label = "Main Thread"
+        NC2 [label="NeckoChild"];
+        EP2 [label="example.com Page", style=filled, fillcolor=3];
+
+        NC2 -> EP2;
+    }
+
+  }
+
+  edge [style=dashed];
+  NP1 -> NC1;
+  NP2 -> NC2;
+  SWIP -> SWIC;
+}

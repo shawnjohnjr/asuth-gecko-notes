@@ -1,3 +1,21 @@
+## tabdrome bugzilla open tab relationship graph ##
+
+When I find myself with 20+ bugzilla tabs open across 3 windows, it would be
+handy to have a quickly created info-space that explains what's going on.  The
+necessity of this may be mitigated by tabdrome supporting task workflows better.
+However, there could still be potential utility in being able to see how these
+different parallel tasks end up being related.
+
+For example, different bug investigations converging.  This might suggest some
+level of user agency actively scraping one-degree-of-separation (or more if
+dumb low-entropy relationships can be avoided like massive meta-bugs or "these
+were all mentioned on #developers within 24 hours") so that the user can be more
+immediately made aware of the linkage between the two things.  A more known
+useful variation on this is catching up on bugmail when the future messages make
+it known that the bug was fixed/duped; it's useful to be able to know to skim,
+etc.  Different use-case, but it would want a similar non-invasive-sorta-ambient
+UI exposure.
+
 ## tabdrome "find"/anchor/outline awareness ##
 
 During patch/code investigation, I frequently find myself using ctrl-f to

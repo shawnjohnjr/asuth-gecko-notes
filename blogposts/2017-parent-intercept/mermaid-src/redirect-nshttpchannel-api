@@ -1,0 +1,49 @@
+sequenceDiagram
+participant listener as Listener
+participant orig as Original nsHttpChannel
+participant nsNetUtil
+participant nsHttpHandler
+participant helper as nsAsyncRedirectVerifyHelper
+participant redir as New nsHttpChannel
+
+orig ->>+orig: StartRedirectChannelToURI(uri)
+
+orig ->>+ nsNetUtil: NS_NewChannelInternal(uri)
+nsNetUtil ->>+ nsHttpHandler: NewChannel2
+nsHttpHandler ->>- redir: new()
+deactivate nsNetUtil
+
+orig ->>+ orig: SetupReplacementChannel
+orig ->>- redir: All kinds of state propagation via setters.
+
+orig ->>+ nsHttpHandler: AsyncOnChannelRedirect
+nsHttpHandler ->>+ helper: Init
+note right of helper: Reschedules self on main thread.
+deactivate helper
+deactivate nsHttpHandler
+
+orig ->>+ orig: WaitForRedirectCallback()
+note right of orig: Pumps suspended.
+deactivate orig
+deactivate orig
+
+helper ->>+ helper: Run()
+note right of helper: nsIOService checks
+helper ->> listener: nsIChannelEventSink::AsyncOnChannelRedirect
+deactivate helper
+note right of helper: Waits for all async OnRedirectVerifyCallback calls to complete.
+
+listener ->>+ helper: OnRedirectVerifyCallback
+helper ->> helper: ExplicitCallback()
+helper ->>- orig: nsIAsyncVerifyRedirectCallback::OnRedirectVerify(redirect okay)
+
+orig ->>+ orig: ContinueAsyncRedirectChannelToURI()
+orig ->>+ orig: OpenRedirectChannel:
+orig ->> redir: SetOriginalURI(mOriginalURI)
+orig ->> redir: AsyncOpen2(mListener)
+orig ->> listener: nsIRedirectResultListener::OnRedirectResult
+note right of orig: Release listeners.
+deactivate orig
+
+note right of orig: Pumps resumed.
+deactivate orig

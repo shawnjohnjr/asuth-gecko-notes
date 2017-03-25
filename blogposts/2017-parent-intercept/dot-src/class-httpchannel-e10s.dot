@@ -1,31 +1,33 @@
 digraph G {
-    rankdir = "TD";
-    fontname = "Sans-Serif";
+  rankdir = "TD";
+  fontname = "Sans-Serif";
+  splines = spline;
 
-    node [shape=box, fontname="Sans-Serif", fontsize=10];
-    edge[dir=back, arrowtail=empty]
+  node [shape=box, fontname="Sans-Serif", fontsize=10];
+  edge[dir=back, arrowtail=empty]
 
-	subgraph cluster_parent {
-	    label = "Parent";
-	    PHttpChannelParent -> HttpChannelParent;
-	}
+  subgraph cluster_parent {
+    label = "Parent";
+    PHttpChannelParent -> HttpChannelParent;
+    edge[dir=forward, style=dashed, arrowhead=open]
+    HttpChannelParent -> HttpChannelParentListener;
+  }
 
-	subgraph cluster_none10s {
-	    label = "non-e10s";
+  subgraph cluster_none10s {
+      label = "non-e10s";
 
-		nsIChannel -> nsIHttpChannel;
-		nsIHttpChannel -> HttpBaseChannel;
-		HttpBaseChannel -> nsHttpChannel;
-	}
+  nsIChannel -> nsIHttpChannel;
+  nsIHttpChannel -> HttpBaseChannel;
+  HttpBaseChannel -> nsHttpChannel;
+  }
 
-	subgraph cluster_child {
-	    label = "Child";
-	    PHttpChannelChild -> HttpChannelChild;
-	}
-	HttpBaseChannel -> HttpChannelChild;
+  subgraph cluster_child {
+    label = "Child";
+    PHttpChannelChild -> HttpChannelChild;
+  }
+  HttpBaseChannel -> HttpChannelChild;
 
-	edge[dir=forward, style=dashed, arrowhead=open]
+  edge[dir=forward, style=dashed, arrowhead=open]
 
-	HttpChannelParent -> nsHttpChannel;
-	#PHttpChannelChild -> PHttpChannelParent;
+  HttpChannelParent -> nsHttpChannel;
 }

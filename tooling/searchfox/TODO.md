@@ -55,3 +55,8 @@ virtual bool MainThreadRun() = 0;
 dom/xhr/XMLHttpRequestWorker.cpp #231
 
 virtual bool MainThreadRun() override;
+
+## definition issues to look into
+
+Currently shipping searchfox and dev server, when clicking on either part of
+"nsIChannel::LOAD_REPLACE" brings up the auto-generated header.

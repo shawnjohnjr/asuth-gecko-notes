@@ -1,0 +1,74 @@
+sequenceDiagram
+participant ExternalHelperAppParent
+participant ChannelDiverterParent
+participant nsHttpChannel
+participant HttpChannelParentListener
+participant HttpChannelParent
+participant HttpChannelChild
+participant ExternalHelperAppChild
+
+%% DivertToParent
+activate ExternalHelperAppChild
+ExternalHelperAppChild ->>+ HttpChannelChild: DivertToParent()
+%% self-processing
+HttpChannelChild ->> HttpChannelChild: Suspend()
+Note left of HttpChannelChild: ChannelEventQ suspended, buffering data.
+%% IPC 1
+HttpChannelChild -->>+ ChannelDiverterParent: PChannelDiverterConstructor(PHttpChannel) via NeckoParent
+HttpChannelChild ->>- ExternalHelperAppChild: returns: ChannelDiverterChild
+
+%% SuspendForDiversion
+ChannelDiverterParent ->>+ HttpChannelParent: SuspendForDiversion()
+HttpChannelParent ->> nsHttpChannel: MessageDiversionStarted()
+loop nsHttpChannel::mSuspendCount times
+  note right of nsHttpChannel: Consistency: like nsHttpChannel's Suspend() had been called.
+  nsHttpChannel ->> HttpChannelParent: SuspendMessageDiversion()
+  note left of HttpChannelParent: ChannelEventQueue suspended.
+end
+HttpChannelParent ->> nsHttpChannel: SuspendInternal()
+note left of nsHttpChannel: Pumps suspended, no more data.
+HttpChannelParent ->>- HttpChannelParentListener: SuspendForDiversion()
+note left of HttpChannelParentListener: Asserts no events.
+
+deactivate ChannelDiverterParent
+
+%% IPC 2
+ExternalHelperAppChild -->>+ ExternalHelperAppParent: DivertToParentUsing(PChannelDiverter)
+deactivate ExternalHelperAppChild
+ExternalHelperAppParent ->>+ ChannelDiverterParent: DivertTo()
+ChannelDiverterParent ->>+ HttpChannelParent: DivertTo(nsIStreamListener* this)
+HttpChannelParent ->> HttpChannelParent: StartDiversion()
+HttpChannelParent ->> ExternalHelperAppParent: OnStartRequest((nsHttpChannel *)mChannel)
+HttpChannelParent ->> HttpChannelParentListener: DivertTo(nsIStreamListener*)
+note left of HttpChannelParentListener: Set mNextListener, HttpChannelParent no longer receives events, stop asserting no events.
+
+HttpChannelParent -->> HttpChannelChild: FlushedForDiversion()
+note right of HttpChannelChild: Enqueues FlushedForDiversion ChannelEvent.
+
+HttpChannelParent -->>+ HttpChannelChild: DivertMessages()
+deactivate HttpChannelParent
+deactivate ChannelDiverterParent
+deactivate ExternalHelperAppParent
+HttpChannelChild ->> HttpChannelChild: Resume()
+
+note right of HttpChannelChild: ChannelEventQ resumed.
+activate HttpChannelChild
+loop Buffered data events run
+  note right of HttpChannelChild: Buffered data events run.
+  HttpChannelChild -->>+ HttpChannelParent: DivertOnDataAvailable()
+  HttpChannelParent ->>+ HttpChannelParentListener: OnDataAvailable
+  HttpChannelParentListener ->>- ExternalHelperAppParent: OnDataAvailable
+  deactivate HttpChannelParent
+end
+
+note right of HttpChannelChild: FlushedForDiversion event runs.
+HttpChannelChild -->>+ HttpChannelParent: DivertComplete()
+deactivate HttpChannelChild
+deactivate HttpChannelChild
+
+HttpChannelParent ->> HttpChannelParent: ResumeForDiversion()
+HttpChannelParent ->> nsHttpChannel: MessageDiversionStop()
+HttpChannelParent ->> nsHttpChannel: ResumeInternal()
+note left of nsHttpChannel: Pumps resumed, data flows again.
+
+deactivate HttpChannelParent
