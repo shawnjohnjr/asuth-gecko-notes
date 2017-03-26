@@ -1,0 +1,14 @@
+sequenceDiagram
+participant listener as HttpChannelParentListener
+participant orig as Original nsHttpChannel
+participant origP as Origin HttpChannelParent
+participant nsNetUtil
+participant nsHttpHandler
+participant helper as nsAsyncRedirectVerifyHelper
+participant redir as New nsHttpChannel
+participant redirP as New HttpChannelParent
+
+orig ->> listener: nsIRedirectResultListener::OnRedirectResult
+listener ->> origP: Delete()
+note right of listener: Set mNextListener to new HttpChannelParent
+listener ->> redirP: SetParentListener(this)
