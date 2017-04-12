@@ -73,6 +73,8 @@ Sequence diagram of redirection without e10s details.
 
 Elaborations on the diagram:
 
+The nsAsyncRedirectVerifyHelper is also where fetch's [redirect mode](https://fetch.spec.whatwg.org/#concept-request-redirect-mode) is factored in.  If the mode is "follow", the redirect will be approved and proceed, as covered by the diagram.  However, if the mode was "error" (generate a network error on redirect) or "manual" (return the redirect response as an opaque-filtered redirect response) and the redirect wasn't internal or a Strict-Transport-Security upgrade, then the redirect will be aborted and the redirect itself will be the channel's result returned to the listener.
+
     When the original nsHttpChannel "Pumps [are] suspended", that's its nsInputStreamPump that provides the channel with OnStartRequest/OnDataAvailable/OnStopRequest events.  By suspending the pump, the channel doesn't need to worry about those calls happening.
     When checking if redirects are okay, nsIChannelEventSink::AsyncOnChannelRedirect methods are invoked.  This is an asynchronous check; the method needs to call the passed in callback to complete the check.  The nsAsyncRedirectVerifyHelper provides a DelegateOnChannelRedirect helper that abstracts the book-keeping for callbacks in addition to being the home to logic like invoking the nsIOService checks.
     The "nsIOService checks" AsyncOnChannelRedirect handler:
@@ -95,9 +97,17 @@ When trying to understand code, I always find it useful to know the motivating u
     Non-nsHttpChannel code calling nsIHttpChannel::redirectTo():
         WebExtensions using the webRequest API inspect/intercept HTTP requests that choose to perform redirects in onBeforeRequest or onHeadersReceived.  (If you are wondering if there's a way you can create an extension that does the same thing as a ServiceWorker for a site you do not control, this is the API for you.)
         Legacy Firefox Extensions.
-        RecvRedirect2Verify
-    Service Worker-triggered Redirects via InterceptedChannelChrome using the internal nsHttpChannel::StartRedirectChannelToURI API call:
-        A response was provided to respondWith() but its URI was different from the URI requested in the fetch event.  An internal redirect is generated so that a new channel can be created with the new URI. DO EXPLAIN DO.
+        RecvRedirect2Verify **???**
+**revised**
+* ServiceWorker fetch events resolved with a Response whose URI does not match that of the request.  This is a special case that can't happen for normal web content because HTTP does not provide this capability.  The Location header only has meaning for redirect status codes and will
+be ignored otherwise.
+  * Pre-patch this happens in both the parent and child.  Post-patch this happens only in the parent.
+* Service Worker-triggered Redirects via InterceptedChannelChrome using the internal nsHttpChannel::StartRedirectChannelToURI API call:
+        A response was provided to respondWith() but its URI was different from the URI requested in the fetch event.  **up**
+An internal redirect is generated so that a new channel can be created with the new URI as the one-channel-one-URI invariant demands.  This differs from a normal redirect where the ServiceWorker might be consulted again with a new "fetch" event generated and potentially respondWith()ed.
+
+*
+**DO EXPLAIN DO.**
     HandleAsyncAPIRedirect: Permanent.  Seems to be downstream of redirectTo.
         nsHttpChannel::BeginConnect checks mAPIRedirectToURI and uses AsyncCall to reach this. (6098)
     mAPIRedirectToURI: 2 side-effect cases.  One in ContinueProcessResponse1.  One in OnStartRequest.  One direct invocation in HandleAsyncAPIRedirect above.
@@ -136,7 +146,9 @@ E10s Complications: Redirects
 Redirects get more complicated under e10s.  The good news is that "normal" redirects all happen in the parent, based around the same nsHttpChannel control flow discussed above.  The e10s logic builds on that.
 
 foo DISCUSS foo
+**TODO: e10s redirects**
 
+**END: e10s redirects**
 
 Service Worker and HTTP Channel Interactions
 nsINetworkInterceptController
@@ -150,21 +162,61 @@ The interface defines 2 methods:
         Call resetInterception(), causing an internal redirect so that we act like the SW never existed, checking the HTTP cache and going to the network as appropriate.
         Generate a synthesized response.  Set the status via synthesizeStatus, set headers via synthesizeHeader, write to the responseBody stream,  and finish by invoking finishSynthesizedResponse(finalURLSpec).
 
-Intercepted Channels
+Under e10s, the nsDocShell instances live in the content process.  So what happens in the parent process?  The answer is that HttpChannelParentListener also implements the interface and handles the calls.  nsHttpChannel always attempts to retrieve an nsINetworkInterceptController from its notificationCallbacks attribute and invoke its shouldPrepareForIntercept method to determine whether interception is appropriate.  This happens regardless of whether it's an e10s scenario where the nsHttpChannel was created by an HttpChannelParent or it's non-e10s and the nsHttpChannel was directly created in the parent.  nsHttpChannel doesn't distinguish between the two, it just consumes the interface.
 
-do DISCUSS MESSAGE FLOW AND CHANNEL AS NORMALIZING HANDLES do.  Verify that channelcontent always bounces things of HttpChannelChild.
+### Intercepted Channels ###
 
-nsIInterceptedChannel is the interface
-Actual Content Delivery
+**do DISCUSS MESSAGE FLOW AND CHANNEL AS NORMALIZING HANDLES do**.  Verify that channelcontent always bounces things of HttpChannelChild.
 
-do ABSTRACT FOR NOW do : Synthesized cache entries.  OpenCacheEntry ends up as stopping point which notifies the controller.  Maybe cover more in the previous sequence diagram.
-Complications: Redirects and Secure Upgrades
+As mentioned above, nsIInterceptedChannel is the interface that the Service Worker fetch event handler uses to provide its Response object.  Currently this entails a number of separate method calls, but in the future it's likely the Response will be directly provided instead.
+
+[DIAGRAM: intercepted-channels.svg]
+
+There are two implementations of nsIInterceptedChannel: InterceptedChannelChrome and InterceptedChannelContent, both of which subclass InterceptedChannelBase.  Although the Chrome variant will only ever be created in the parent process and the Content variant in a child content process, they do not have a parent/child relationship like HttpChannelParent and HttpChannelChild.  We have two implementation types because they each hold mChannel references to the concrete channel types, nsHttpChannel in the parent, and HttpChannelChild in the child.  They do this because of their differing means of injecting the synthesized content and resetting interception.
+
+In nsHttpChannel, Service Worker interception is performed during the OpenCacheEntry stage of processing.  If we intercept and provide a synthesized result, we never hit the HTTP cache and a synthesized cache entry is generated.  InterceptedChannelChome has the specific logic to populate the synthetic cache entry.  And it handles calls to resetInterception by manually triggering a programmatic redirect; nsHttpChannel itself has no resetIndirection method.
+
+InterceptedChannelContent's behavior changes with the patch, which we'll get to in a later section.  The key difference to be aware of is that HttpChannelChild is very aware of ServiceWorkers and interception and so InterceptedChannelContent is able to be a thinner layer.  HttpChannelChild exposes a ResetInterception method it is able to invoke directly, and post-patch, content synthesis is simpler too.
+
+Differences in behavior between e10s and non-e10s stem from whether the nsINetworkInterceptController is an nsDocShell (non-e10s in parent, e10s in child) or an HttpChannelParentListener (e10s in parent only).
 
 
-The Old Way: Child Intercept
-Strategy: Don't Get The Parents Involved
+**The Old Way: Child Intercept**
+## Strategy: Don't Get The Parents Involved ##
 
-The current implementation goes out of its way to avoid involving
+The current pre-patch implementation optimizes for the ability to process Service Worker interceptions in the child with as little parent involvement as possible.  In a world where the decision to intercept and the processing of the intercept both happen entirely in the child process, this makes a lot of sense.  But it also comes with a massive amount of complexity because it means the child channel needs to duplicate logic that would normally be handled in the parent, plus the additional permutations when the parent does need to get involved.
+
+The parent needs to be involved when any of the following things happen:
+* The fetch needs to go to the network because neither respondWith() nor preventDefault() was invoked on the fetch event.
+* respondWith() is resolved with a Response with a redirect status.
+* Diversion: As previously covered, diversion is a mechanism by which the channel can be consumed in the parent process and by definition this involves the parent process.
+
+The child can handle things without involving the parent process when:
+* respondWith is resolved with a Response whose URI matches that of the request.  This is the simplest and most straightforward case.
+* respondWith is resolved with a Response that does not have a redirect status but whose URI does not match that of the request.  This results in HttpChannelChild's specialized BeginNonIPCRedirect method being invoked to run the redirect entirely in the client.
+
+### Complexity: Redirects ###
+
+Redirects happen in the parent.  Why?  Because that's where they happened prior to the introduction of Serivce Workers.  Why?  Because nsHttpChannel already knew how to perform redirects and there's only a performance hit to remote the decision-making process from the parent where the network I/O is happening down to the child and then back up again.  (At least that's my guess on the simplest evolutionary explanation.)Redirect3Complete
+
+As a result, if a ServiceWorker responds to a fetch event with a redirection, an HttpChannelParent will need to be spun up.  Things get more complicated because this transfers control to the parent and that redirected channel may also need to be intercepted.
+
+As mentioned previously, HttpChannelParentListener implements nsINetworkInterceptController.  This is how the child regains control of the channel.  When responding with a synthesized redirect, the child tells the parent that it should intercept the redirected channel.  Its shouldPrepareForIntercept will then return true so that its channelIntercepted method will be called.  When it's channelIntercepted method is called it simply saves off the intercepted channel and does nothing.  Instead, the next action will be taken by the HttpChannelChild whose CompleteRedirectSetup method will be sending a SendFinishInterceptedRedirect ping-pong.  The parent will stop sending IPC messages on receipt and issue its own send.  The child will then delete the parent and continue the redirect handling in the child by invoking AsyncOpen2.
+**need to document relationship of the self-deading channel to the redirected channel**.  It looks like the same child.  How do replacement channels work for this?
+
+#### Normal Redirects Still Happen in the Parent ####
+
+#### Known Synthesized Redirects Happen in the Child ####
+
+### Providing the Synthesized Response ###
+
+#### InterceptStreamListener ####
+
+The synthesized response data and its nsIStreamListener events are actually being generated by HttpChannelChild's mSynthesizedResponsePump nsInputStreamPump.  This means that in the OnDataAvailable and other listener notifications, the nsIRequest* aRequest is that of the nsInputStreamPump rather than the HttpChannelChild.  This is potentially confusing to the listener.  So the InterceptStreamListener is registered as the pump's listener and it redirects each event to the child's listener, passing the child as aRequest instead.
 
 
-The New Way: Parent Intercept
+**The New Way: Parent Intercept**
+
+As stated previously, we are moving both the decision to intercept navigations and the processing of the intercept into the parent process
+
+### Providing the Synthesized Response ###

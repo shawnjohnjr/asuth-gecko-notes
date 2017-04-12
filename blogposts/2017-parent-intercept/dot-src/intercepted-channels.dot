@@ -1,0 +1,64 @@
+digraph G {
+  newrank = true;
+  rankdir = "LR";
+  fontname = "Sans-Serif";
+  splines = spline;
+
+  node [shape=none, fontname="Helvetica", fontsize=10, colorscheme=pastel28];
+  edge [arrowhead=open];
+
+  subgraph cluster_parent {
+    label = "Parent";
+
+    hcpl [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+      <tr><td port="ifaceC"><I>nsINetworkInterceptController</I></td></tr>
+      <tr><td port="ifaceL"><I>nsIStreamListener</I></td></tr>
+      <tr><td port="impl"><B>HttpChannelParentListener</B></td></tr>
+      <tr><td port="ichan">mInterceptedChannel</td></tr></table>>];
+    hcp [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+      <tr><td port="actor">PHttpChannelParent</td></tr>
+      <tr><td port="impl" bgcolor="1"><B>HttpChannelParent</B></td></tr>
+      <tr><td port="plistener">mParentListener</td></tr></table>>];
+    icp [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+      <tr><td port="iface"><I>nsIInterceptedChannel</I></td></tr>
+      <tr><td port="impl" bgcolor="2"><B>InterceptedChannelChrome</B></td></tr>
+      <tr><td port="controller">mController</td></tr>
+      <tr><td port="channel">mChannel</td></tr></table>>];
+    nshttp [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+      <tr><td port="impl"><B>nsHttpChannel</B></td></tr>
+      <tr><td port="listener">mListener</td></tr></table>>];
+
+    hcp:plistener -> hcpl:impl;
+    hcpl:ichan -> icp:iface;
+    nshttp:listener -> hcpl:ifaceL; # also available via mCallbacks interface requester magic
+    icp:controller -> hcpl:ifaceC;
+    icp:channel -> nshttp:impl;
+  }
+
+  subgraph cluster_child {
+    label = "Content Child";
+
+    hcc [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+      <tr><td port="actor">PHttpChannelChild</td></tr>
+      <tr><td port="impl" bgcolor="1"><B>HttpChannelChild</B></td></tr></table>>];
+    docshell [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+      <tr><td port="iface"><I>nsINetworkInterceptController</I></td></tr>
+      <tr><td port="impl"><B>nsDocShell</B></td></tr></table>>];
+    icc [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+      <tr><td port="iface"><I>nsIInterceptedChannel</I></td></tr>
+      <tr><td port="impl" bgcolor="2"><B>InterceptedChannelContent</B></td></tr>
+      <tr><td port="controller">mController</td></tr>
+      <tr><td port="channel">mChannel</td></tr></table>>];
+    event [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+      <tr><td port="impl"><B>FetchEvent</B></td></tr>
+      <tr><td port="ichan">mChannel</td></tr></table>>];
+
+    icc:controller -> docshell:iface;
+    icc:channel -> hcc:impl;
+    event:ichan -> icc:iface;
+  }
+
+  edge [dir=none, style=dashed];
+
+  hcp:actor -> hcc:actor;
+}

@@ -1,18 +1,90 @@
 ## Further Patch Cleanup Maybe ##
 
-* HttpChannelChild::FinishInterceptedRedirect no longer seems to have a reason
-  to exist.  Previously it existed to re-invoke AsyncOpen2/AsyncOpen after the
-  redirect.
-  * Along those lines, the following state variables that only existed for it
-    can be removed:
-    * mInterceptingChannel
-    * mInterceptedRedirectListener
-    * mInterceptedRedirectContext
+## Still Pending ##
+
+### HttpChannelChild.h
+bool mResponseIsSynthesized;
+We should add a comment here.
+Josh Matthews [:jdm] <josh@joshmatthews.net>
+1/19/2017
+PENDING
+
+### HttpChannelParentListener::ClearInterceptedChannel
+
+if (mInterceptedChannel && channel == caller) {
+I no longer remember why this was necessary; we should definitely have an explanation or remove this if it's no longer needed.
+Josh Matthews [:jdm] <josh@joshmatthews.net>
+1/19/2017
+PENDING
+
+This exists because there is a period of time during a redirect when both the old and new HttpChannelParent have mParentListener set.
+
+This happens because HttpChannelParentListener::OnRedirectResult:
+ * Calls oldParentChannel->Delete() which is an async operation that calls DoSendDeleteSelf which calls SendDeleteSelf() and sets mIPCClosed = true.
+ * Calls newParentChannel->SetParentListener(this)
+
+Tentatively planned fix: Explicitly null out the parent listener in the old channel prior to calling Delete.
+
+### InterceptedChannelContent::NotifyController()
+{
+{
+  nsresult rv = NS_NewPipe(getter_AddRefs(mSynthesizedInput),
+  /*nsresult rv = NS_NewPipe(getter_AddRefs(mSynthesizedInput),
+                           getter_AddRefs(mResponseBody),
+                           getter_AddRefs(mResponseBody),
+                           0, UINT32_MAX, true, true);
+                           0, UINT32_MAX, true, true);*/
+We should remove this and file a followup about using a PSendStream for the synthesized body instead of this storage stream, since bug 1294450 was fixed.
+Josh Matthews [:jdm] <josh@joshmatthews.net>
+1/19/2017
+PENDING.  Bug 1204254 "service workers should stream response bodies when intercepting a channel" is related.
+
 
 ## Still To Understand ##
 
 Check the *blah* stuff too, but:
 * Redirect3Complete's no longer guarded invocation of CleanupRedirectingChannel.
+* "manual" redirect mode logic for the pre-patch in
+  HttpChannelChild::SetupRedirect.
+  * revised:
+  * Okay, so, navigation notionally single-steps its way through manual
+    redirects.
+    * nsDocShell:DoURILoad is the one that sets manual mode... cascades through
+      into nsUriLoader as known which does the actual ASyncOpen2 and handles
+      things like sniffing downloads.
+    * Not quite clear where it's getting the single-step from... but I think the
+      presumption must be that the channel is handling this internally somewhat,
+      such that we're seeing/processing the redirect rather than having the
+      stepping destroy the rediect context...
+    * Anywho, the point is that if the child doesn't tell the parent to trap,
+      then the parent won't trap.
+  * OLD:
+  * For this to be happening, we must be arriving there via Redirect1Begin, not
+    the synthesized path via OverrideWithSynthesizedResponse because it would
+    have set mShouldInterceptSubsequentRedirect=true which would have caused us
+    to fall into the prior clause.
+  * This means content (or an extension) is the source of a redirect coming down
+    to us from the parent.  This redirect is in process.
+  * The logic is explicitly only matching cases where it's not an internal
+    redirect or upgrade.  AKA it's a content visible redirect and therefore
+    manual mode applies.  It's also checking that the redirect matches us.
+  * Per the html spec, the issue is that navigation wants to handle redirects
+    itself because of things like mailto URI's where an action does want to be
+    taken, but which would not be appropriate in cases like sub-resources, etc.
+    and rather the error would be preferred.  So HTML's navigate basically
+    single steps itself through manual redirects.
+  * This logic was added by "Bug 1229369 - Intercept redirected network fetches that have their request mode set to manual; r=jdm."
+    * The test here is navigation-redirect.https.html's OUT_SCOPE to SCOPE1 and
+      OTHER_ORIGIN_SCOPE, respectively.  In the first case we expect SCOPE1 to
+      have intercepted and in the second case, OTHER_ORIGIN_SCOPE.  These are
+      being bounced off of a script that just generates a 302 to the given URL.
+      So a straight-up intercept and the issue is really just the iframe
+      navigation context which results in manual.
+  * n fetch as it relates to the navigate algorithm.  As
+  I currently read it (and, well, it's explicit), the "HTTP-redirect fetch"
+  algorithm is used by navigate and it can specify "manual".  And this can only
+  happen via navigate because "HTTP-redirect fetch" is only invoked by normal
+  fetch if the mode was "follow".
 
 ### The redirect and mShouldParentIntercept dance ###
 
@@ -51,10 +123,6 @@ Redirect begins in the parent:
 * Child: OverrideRunnable::Run
   * => Redirect3Complete.
   *
-
-### ChannelEventQueue race rationale ###
-
-The race described is generating an OnDataAvailable when
 
 ## Patch Explanation ##
 
@@ -173,7 +241,12 @@ InterceptedChannel.cpp *pending*
         mChannel->OverrideWithSynthesizedResponse().
     * post-patch:
       * If !WillRedirect(mSynthesizedResponseHead), disables conversion via
-        mChannel->SetApplyConversion(false).  *why*
+        mChannel->SetApplyConversion(false).  (Because if it's not a redirect,
+        then it means we're providing actual content results and our
+        synthesized results are already decoded.  If this were a redirect, it's
+        possible the successor channel might not get a synthesized response and
+        it would break things if we had already disabled conversion and it
+        propagated.)
       * Unconditionally invokes mChannel->SynthesizeResponse(...)
   * Cancel, pre-patch: null out mStreamListener (now gone)
 
@@ -239,7 +312,9 @@ HttpChannelChild.h
     * mSuspendParentAfterSynthesizeResponse
     * mOverrideRunnable
     * BeginNonIPCRedirect(responseURI, responseHead)
-    * InterceptStreamListener: ?fakes out listener?
+    * InterceptStreamListener: Wraps/decorates the synthesized response's input
+      pump-generated events so that they instead look like they're coming from
+      the HttpChannelChild instead of the pump.
   * Modified:
     * Redirect3Complete lost its aRunnable argument
 
@@ -542,8 +617,9 @@ nsINetworkInterceptController
   * HttpChannelParentListener:
 
 HttpBaseChannel
-* GetCallback(nsCOMPtr<T>): NS_QueryNotificationCallbacks-using helper to ferret
-  out the interface from:
+* GetCallback(nsCOMPtr<T>): NS_QueryNotificationCallbacks-using helper via
+  GetInterface() (a template that extracts the IID) to ferret out the interface
+  from:
   * mCallbacks (an nsIInterfaceRequestor, not directly a collection), failing
     over to the load group (if present), asking for its NotificationCallbacks
     (an nsIInterfaceRequestor) too.
