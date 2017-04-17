@@ -14,7 +14,7 @@ out extra window for serviceworker.  F12 instances are separate worlds and
 there's some devtools network tab limitations.  MS store slurping bing data and
 filtered web manifests to expose as "HWA" Hosted Web app.  HWA's have separate
 storage (with separate, unbounded limits).  Will have ability to claim the
-entry.  Do have FetcyBodyStream, but not general ReadableStreams.  For next
+entry.  Do have FetchBodyStream, but not general ReadableStreams.  For next
 release, SW's may still be behind flag depending on status, but will actually do
 something.
 
@@ -96,7 +96,7 @@ other way.
 Google fonts use-case involves dynamically creating the stylesheet on the fly.
 (Tons of permutations.)
 
-### bading ###
+### Badging ###
 
 Safari, no interest in dynamic favicon changing,  but yes to badging.  Title is
 fine as long as it's suggestive, not a requirement.  They categorically don't
