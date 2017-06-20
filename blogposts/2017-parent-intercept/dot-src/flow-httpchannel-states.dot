@@ -1,0 +1,279 @@
+digraph G {
+  newrank = true;
+  rankdir = "TD";
+  fontname = "Sans-Serif";
+  splines = spline;
+
+  node [shape=box, fontname="Helvetica", fontsize=10, colorscheme=pastel28];
+  edge [arrowhead=open, fontname="Helvetica", fontsize=10];
+
+  OnStartRequest -> ProcessResponse [label="!mCachePump"];
+  srcu_osr [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="i">StartRedirectChannelToURI</td></tr>
+    <tr><td port="orvc">OnRedirectVerifyCallback</td></tr>
+    <tr><td port="car">cb ContinueAsyncRedirectChannelToURI</td></tr>
+    <tr><td port="o">cb ContinueOnStartRequest1</td></tr></table>>];
+  OnStartRequest -> srcu_osr:i [label="mAPIRedirectToURI"];
+  srcu_osr:car -> ContinueAsyncRedirectChannelToURI;
+  srcu_osr:o -> cosr_chain:cosr1;
+  OnStartRequest -> cosr_chain:cosr1;
+  ProcessResponse -> ContinueProcessResponse1;
+
+  cosr_chain [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="cosr1">ContinueOnStartRequest1</td></tr>
+    <tr><td port="cosr2">ContinueOnStartRequest2</td></tr>
+    <tr><td port="cosr3">ContinueOnStartRequest3</td></tr></table>>];
+  cosr_chain:cosr1:e -> "moot because of redirect" [label="NS_SUCCEEDED"];
+  cosr_chain:cosr1:e -> ProxyFailover;
+  cosr_chain:cosr2:e -> ProcessFallback;
+  cosr_chain:cosr3:e -> CallOnStartRequest [label="!mFallingBack"];
+
+  ContinueProcessResponse1 -> cpr2:i;
+  srcu_cpr1 [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="i">StartRedirectChannelToURI</td></tr>
+    <tr><td port="w">WaitForRedirectCallback</td></tr>
+    <tr><td port="orvc">OnRedirectVerifyCallback</td></tr>
+    <tr><td port="car">cb ContinueAsyncRedirectChannelToURI</td></tr>
+    <tr><td port="o">cb ContinueProcessResponse2</td></tr></table>>];
+  ContinueProcessResponse1 -> srcu_cpr1:i [label="mAPIRedirectToURI"];
+  srcu_cpr1:car -> ContinueAsyncRedirectChannelToURI;
+  srcu_cpr1:o -> cpr2:i;
+
+  cpr2 [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="i"><B>ContinueProcessResponse2</B></td></tr>
+    <tr><td port="s200">200, 203</td></tr>
+    <tr><td port="s206cp">206 and mCachedContentIsPartial</td></tr>
+    <tr><td port="s206ncp">206 and !mCachedContentIsPartial</td></tr>
+    <tr><td port="s300">300,301,302,303,307,308</td></tr>
+    <tr><td port="s304nb">304 and !ShouldBypassProcessNotModified()</td></tr>
+    <tr><td port="s304b">304 and ShouldBypassProcessNotModified()</td></tr>
+    <tr><td port="s401">401,407</td></tr>
+    <tr><td port="default">default</td></tr></table>>];
+
+  cpr2:s200 -> ProcessNormal;
+  cpr2:s206cp -> ProcessPartialContent;
+  cpr2:s206ncp -> ProcessNormal;
+  cpr2_s300 [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="apr">AsyncProcessRedirection</td></tr>
+    <tr><td port="dnr">if DoNotRender3xxBody</td></tr>
+    <tr><td port="cpr3">else ContinueProcessResponse3</td></tr></table>>];
+  cpr2:s300 -> cpr2_s300;
+  cpr2_s300:apr:e -> AsyncProcessRedirection;
+  cpr2_s300:dnr -> DoNotifyListener;
+  cpr2_s300:cpr3 -> ContinueProcessResponse3;
+
+  cpr2_s304 [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="pnm">ProcessNotModified</td></tr></table>>];
+  cpr2:s304nb -> cpr2_s304;
+
+  srcu_cpr2 [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="i">StartRedirectChannelToURI</td></tr>
+    <tr><td port="w">WaitForRedirectCallback</td></tr>
+    <tr><td port="orvc">OnRedirectVerifyCallback</td></tr>
+    <tr><td port="car">cb ContinueAsyncRedirectChannelToURI</td></tr></table>>];
+  cpr2_s304:pnm -> ProcessNotModified;
+  cpr2_s304:pnm -> srcu_cpr2:i [label="NS_FAILED",style=dotted];
+  srcu_cpr2:car -> ContinueAsyncRedirectChannelToURI;
+
+  cpr2:s304b -> ProcessNormal;
+
+  cpr2:s401 -> ProcessAuthentication -> "mTransactionPump::Suspend()";
+
+  cpr2:default -> ProcessNormal;
+
+
+  ContinueProcessResponse3 -> ProcessNormal;
+
+  ProcessNormal;
+  wfrc_pn [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="pf">ProcessFallback (waitingForRedirectCallback==true)</td></tr>
+    <tr><td port="o">cb ContinueProcessNormal</td></tr></table>>];
+  ProcessNormal -> wfrc_pn:pf [label="!succeeded"];
+  wfrc_pn:pf:e -> ProcessFallback:entry;
+  wfrc_pn:o -> ContinueProcessNormal;
+  ProcessNormal -> ContinueProcessNormal [label="succeeded"];
+  ContinueProcessNormal -> CallOnStartRequest;
+  ContinueProcessNormal -> DoNotifyListener [label="NS_FAILED",style=dotted];
+
+  Connect -> HandleAsyncRedirectChannelToHttps [label="NS_ShouldSecureUpgrade"];
+  Connect -> OpenCacheEntry;
+  Connect -> TriggerNetwork;
+
+  ProxyFailover -> AsyncDoReplaceWithProxy;
+  OnProxyAvailable -> BeginConnect;
+  OnProxyAvailable -> CloseCacheEntry_and_AsyncAbort [label="NS_FAILED",style=dotted];
+
+  HandleAsyncRedirectChannelToHttps -> StartRedirectChannelToHttps;
+  HandleAsyncRedirectChannelToHttps -> ContinueAsyncRedirectChannelToURI [label="NS_FAILED",style=dotted];
+
+  StartRedirectChannelToHttps -> srcu_https:i;
+  srcu_https [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="i">StartRedirectChannelToURI</td></tr>
+    <tr><td port="w">WaitForRedirectCallback</td></tr>
+    <tr><td port="orvc">OnRedirectVerifyCallback</td></tr>
+    <tr><td port="o">cb ContinueAsyncRedirectChannelToURI</td></tr></table>>];
+  srcu_https:o -> ContinueAsyncRedirectChannelToURI;
+
+  AsyncOpen -> ResolveProxy;
+  AsyncOpen -> BeginConnect;
+  AsyncOpen -> CloseCacheEntry_and_AsyncAbort [label=NS_FAILED,style=dotted];
+  BeginConnect -> BeginConnectContinue;
+  BeginConnectContinue -> HandleAsyncAPIRedirect [label="mAPIRedirectToURI"];
+  BeginConnectContinue -> ContinueBeginConnectWithResult[label="!LOAD_CLASSIFY_URI"];
+  BeginConnectContinue -> BeginConnectActual;
+  BeginConnectActual -> ContinueBeginConnectWithResult;
+  ContinueBeginConnectWithResult -> Connect;
+  // ContinueBeginConnect is an async indirection for when suspended.
+  //ContinueBeginConnect -> ContinueBeginConnectWithResult;
+
+  TriggerNetwork -> TryHSTSPriming;
+
+  TryHSTSPriming -> HSTSPrimingListener [style=dashed];
+  TryHSTSPriming -> ContinueConnect;
+  OnInputAvailableComplete -> ContinueConnect;
+  // This is a specialized cache mismatch, not sure it matters.
+  //OnStopRequest -> ContinueConnect;
+  OnPreflightSucceeded -> ContinueConnect;
+  HSTSPrimingListener -> OnHSTSPrimingSucceeded [style=dashed];
+  HSTSPrimingListener -> OnHSTSPrimingFailed [style=dashed];
+  OnHSTSPrimingSucceeded -> ContinueConnect;
+  OnHSTSPrimingFailed -> ContinueConnect;
+
+  ContinueConnect -> ReadFromCache [label="mCacheEntry"];
+  ContinueConnect -> SetupTransaction -> "mTransactionPump::AsyncRead";
+
+  srcu_haapi [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="i">StartRedirectChannelToURI</td></tr>
+    <tr><td port="w">WaitForRedirectCallback</td></tr>
+    <tr><td port="orvc">OnRedirectVerifyCallback</td></tr>
+    <tr><td port="o">cb ContinueAsyncRedirectChannelToURI</td></tr></table>>];
+  HandleAsyncAPIRedirect -> srcu_haapi:i;
+  srcu_haapi:o -> ContinueAsyncRedirectChannelToURI;
+  HandleAsyncAPIRedirect -> ContinueAsyncRedirectChannelToURI [label="NS_FAILED",style=dotted];
+
+  StartRedirectChannelToURI -> WaitForRedirectCallback;
+  StartRedirectChannelToURI -> ContinueAsyncRedirectChannelToURI [label="NS_FAILED",style=dotted];
+
+  ContinueAsyncRedirectChannelToURI -> OpenRedirectChannel [label="NS_SUCCEEDED"];
+  ContinueAsyncRedirectChannelToURI -> Cancel [label="NS_FAILED",style=dotted];
+
+  // AsyncOpen success is usually followed by calls to
+  // notifier.RedirectSucceeded() and RleaseListeners, but these are somewhat
+  // non-notable for our purposes.  Or at least, it's not clear they're
+  // beneficial in this complex a graph.
+  OpenRedirectChannel -> AsyncOpen;
+  // -> RedirectSucceeded -> ReleaseListeners;
+
+  AsyncDoReplaceWithProxy;
+  srcu_adrwp [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="w">WaitForRedirectCallback</td></tr>
+    <tr><td port="orvc">OnRedirectVerifyCallback</td></tr>
+    <tr><td port="o">cb ContinueDoReplaceWithProxy</td></tr></table>>];
+  AsyncDoReplaceWithProxy -> srcu_adrwp:w;
+  srcu_adrwp:o -> ContinueDoReplaceWithProxy;
+
+  // uses AsyncOpen redirect idiom.
+  ContinueDoReplaceWithProxy -> AsyncOpen;
+
+  ResolveProxy -> AsyncResolve [style=dashed];
+  AsyncResolve -> OnProxyAvailable [style=dashed];
+
+  // There's a templating nightmare related to these.  The actual impl is the
+  // HttpAsyncAborter<T>::HandleAsyncAbort method and the nsHttpChannel variant
+  // directly hands off to that, so use HandleAsyncAbort as the canonical name.
+  AsyncAbort -> HandleAsyncAbort;
+  HandleAsyncAbort -> DoNotifyListener;
+
+  ProcessPartialContent -> Cancel [label="NS_ERROR_CORRUPTED_CONTENT"];
+  // In the mConcurrentCacheAccess case, mTransactionPump doesn't get suspended
+  // and things will naturally progress.  TODO: elaborate on this.
+  ProcessPartialContent -> "pump mCachePump" [label="mConcurrentCacheAccess"];
+  ProcessPartialContent -> ReadFromCache;
+
+  ProcessNotModified -> ReadFromCache;
+
+  ProcessFallback [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="entry"><B>ProcessFallback</B></td></tr>
+    <tr><td port="bail">if no fallback, bail</td></tr>
+    <tr><td port="w">WaitForRedirectCallback</td></tr>
+    <tr><td port="orvc">OnRedirectVerifyCallback</td></tr>
+    <tr><td port="o">cb ContinueProcessFallback</td></tr>
+    <tr><td port="o">(other pushed callbacks, see callers)</td></tr></table>>];
+  ProcessFallback:o -> ContinueProcessFallback;
+
+  // common AsyncOpen redirect idiom.
+  ContinueProcessFallback -> AsyncOpen;
+
+  // There's a ton of cache states: OpenCacheEntry, OnCacheEntryCheck,
+  // OnCacheEntryAvailable, OnCacheEntryAvailableInternal,
+  // OnNormalCacheEntryAvailable, OnOfflineCacheEntryAvailable,
+  // OnOfflineCacheEntryForWritingAvailable, OpenCacheInputStream,
+  // ReadFromCache, CloseCacheEntry, InitCacheEntry
+
+  // There's indirection; nsICahceStorage.asyncOpenURI is invoked which takes an
+  // nsICacheEntryOpenCallback, which nsHttpChannel implements.
+  OpenCacheEntry -> OnCacheEntryAvailable [style=dashed];
+  //OnCacheEntryAvailable [label="nsICacheEntryOpenCallback::OnCacheEntryAvailable"];
+  OpenCacheEntry -> MaybeRaceCacheWithNetwork;
+  MaybeRaceCacheWithNetwork -> TriggerNetwork;
+
+  // OnCacheEntryCheck: this seems to not have any control-flow implications
+  OnCacheEntryAvailable -> OnCacheEntryAvailableInternal;
+  CloseCacheEntry_and_AsyncAbort [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="cce">CloseCacheEntry</td></tr>
+    <tr><td port="aa">AsyncAbort</td></tr></table>>];
+  CloseCacheEntry_and_AsyncAbort:aa -> AsyncAbort;
+  OnCacheEntryAvailable -> CloseCacheEntry_and_AsyncAbort [label="NS_FAILED",style=dotted];
+  OnCacheEntryAvailableInternal -> TriggerNetwork;
+  OnCacheEntryAvailableInternal -> ReadFromCache;
+  OnCacheEntryAvailableInternal -> HandleAsyncFallback [label="NS_FAILED and LOAD_ONLY_FROM_CACHE",style=dotted];
+
+  Connect -> HandleAsyncFallback [label="NS_FAILED and LOAD_ONLY_FROM_CACHE",style=dotted];
+  ContinueConnect -> HandleAsyncFallback [label="LOAD_ONLY_FROM_CACHE"];
+
+  haf_pf [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="pf">ProcessFallback (waitingForRedirectCallback==true)</td></tr>
+    <tr><td port="o">cb ContinueHandleAsyncFallback</td></tr></table>>];
+  haf_pf:pf -> ProcessFallback:entry;
+  HandleAsyncFallback -> haf_pf:pf;
+  haf_pf:o -> ContinueHandleAsyncFallback;
+  HandleAsyncFallback -> ContinueHandleAsyncFallback [label="mCanceled"];
+
+  ContinueHandleAsyncFallback -> DoNotifyListener;
+
+  // These should perhaps be a different diagaram?
+
+  ReadFromCache -> HandleAsyncRedirect [label="WillRedirect(mResponseHead)"];
+  ReadFromCache -> HandleAsyncNotModified [label="LOAD_ONLY_IF_MODIFIED"];
+  ReadFromCache -> "pump mCachePump";
+
+  HandleAsyncNotModified -> DoNotifyListener;
+
+  AsyncProcessRedirection;
+  wfrc_apr [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="pf">ProcessFallback (waitingForRedirectCallback==true)</td></tr>
+    <tr><td port="w">WaitForRedirectCallback</td></tr>
+    <tr><td port="o">OnRedirectVerifyCallback</td></tr></table>>];
+  AsyncProcessRedirection -> wfrc_apr:pf [label="mApplicationCache"];
+  wfrc_apr:pf:w -> ProcessFallback:entry;
+  wfrc_apr:o -> ContinueProcessRedirectionAfterFallback;
+  AsyncProcessRedirection -> ContinueProcessRedirectionAfterFallback;
+
+  ContinueProcessRedirectionAfterFallback;
+  wfrc_cpraf [shape=none, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="w">WaitForRedirectCallback</td></tr>
+    <tr><td port="orvc">OnRedirectVerifyCallback</td></tr>
+    <tr><td port="o">cb ContinueProcessRedirection</td></tr></table>>];
+  ContinueProcessRedirectionAfterFallback -> wfrc_cpraf:w;
+  wfrc_cpraf:o -> ContinueProcessRedirection;
+
+  // AsyncOpen redirect idiom
+  ContinueProcessRedirection -> AsyncOpen;
+
+  HandleAsyncRedirect -> AsyncProcessRedirection;
+  HandleAsyncRedirect -> ContinueHandleAsyncRedirect [label="NS_FAILED",style=dotted];
+  // ContinueHandleAsyncRedirect w/failed rv does DoNotifyLister() either way,
+  // but that's somewhat non-distinctive.  CloseCacheEntry() will also be
+  // called.
+  ContinueHandleAsyncRedirect -> DoNotifyListener;
+}
