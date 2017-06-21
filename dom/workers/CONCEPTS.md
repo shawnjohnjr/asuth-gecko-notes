@@ -13,12 +13,20 @@ Life-cycle management construct for workers:
 
 ## WorkerRunnable ##
 
-Blinged out runnable helper hierarchy of root class and subclasses.  Provides
-PreDispatch/PostDispatch and PreRun/PostRun extension points.  Has target/busy
-behavior semantics which impact the busy count.
-for subclasses.  Also, subclass variants:
-* WorkerDebuggerRunnable: For debugger stuff!
-* WorkerSyncRunnable:
+Blinged out runnable helper hierarchy of root class and subclasses.  Key bits:
+* Provides access to the worker's JSContext* and WorkerPrivate* in WorkerRun().
+* Provides explicit management of the busy count for the worker.  This matters
+
+* Provides
+PreDispatch/PostDispatch and PreRun/PostRun extension points, all of which
+mainly exist for the benefit of subclasses to add assertions and perform common
+setup.  Has target/busy behavior semantics which impact the busy count.  See
+WorkerRunnable.md for more info.
+
+Normal runnables will be wrapped in ExternalRunnableWrapper instances when
+targeted at a worker.  Cancel() will be propagated if the runnable implements
+nsICancelableRunnable.  These use the WorkerThreadUnchangedBusyCount behavior
+which means they do not modify the worker's busy count,
 
 ## BusyCount ##
 Used to stop the worker thread from prematurely canceling.  Tracked on
@@ -32,11 +40,26 @@ The WorkerRunnable and its many subclasses care a lot about keeping this
 up-to-date.  Example uses:
 * AddChildWorker/RemoveChildWorker contribute a maximum busy count of 1 as long
   as there are any child workers.
-* Each feature contributes a busy count of 1.
+* Each WorkerHolder contributes a busy count of 1.
 * The presence of an active timer contributes a busy count of 1.
+
+### Versus Holders ###
+
+Holders prevent the event loop from terminating.  The busy count prevents the
+worker from getting garbage collected.  (AKA getting canceled from the busy
+count going to 0.)
+
+Note that a Holder can also boost the busy count.
+(https://bugzilla.mozilla.org/show_bug.cgi?id=1362444 introduced the ability to
+have the holder NOT boost the busy count for cases where we want to respond to
+worker shutdown but not prevent it.  This partially explains why things are a
+bit confused; a lot of things were previously conflated.)
+
+## Worker Shutdown / Termination ##
+
+ClearMainEventQueue drains the current event queue, running all pending events.
+They do not get canceled!
 
 ## Garbage Collection ##
 
-## Service Worker Network Retrieval, Storage ##
-
-Service Workers and their importScripts dependencies are stored into DOM Cache.
+Sorta sketchy.

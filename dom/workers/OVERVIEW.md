@@ -120,7 +120,8 @@ registrations.  (Which the SWR loaded at profile-after-change time.)
 * WorkerNavigator: Binding of "navigator" in WorkerGlobalScope.
 * WorkerPrefs: Included by Workers.h as a define-magic payload.
 * WorkerPrivate: Core worker logic.  WorkerPrivateParent type exists for parent
-  thread things, WorkerPrivate exists for on-worker things.
+  thread things, WorkerPrivate exists for on-worker things.  WorkerPrivateParent
+  is the WebIDL binding too.
 * WorkerRunnable: Blinged out runnable helper hierarchy to help with common
   worker idioms like managing busy counts.
 * Workers.h: Public WorkerPrivate stuff: WorkerLoadInfo, WorkerPreference enum

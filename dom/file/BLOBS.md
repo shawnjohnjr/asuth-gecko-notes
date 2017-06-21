@@ -1,5 +1,11 @@
 There's a lot going on with Blobs.
 
+These notes have not been updated for the file splittings that occurred, nor
+for the PBlob overhaul in https://bugzilla.mozilla.org/show_bug.cgi?id=1353629
+which moves from managed actors-per-blob to more inert IPDL structs with
+(either direction) send stream actors handling handling the more complicated
+cases.
+
 ## Roll Call ##
 
 ### Local (non-IPC) ###

@@ -24,6 +24,44 @@ Ex: Follow what happens with a match...
 
 Streams everywhere, no blobs.
 
+### Storage ###
+
+* caches.sqlite - WAL database, contains all of the caches, all the Request
+  info (including headers) and Response info (including headers) except for
+  bodies are stored in here.  Bodies are stored externally as snappy streams
+  under the morgue.
+* morgue/[last byte of binary UUID encoded as a decimal]/{UUID}.final/tmp -
+  The morgue has sharded subdirectories to avoid overwhelming the filesystem.
+  The UUID is in standard hexadecimal form wrapped in {}'s and with dashes
+  inside.  The shard dir is the decimal representation of the last byte, which
+  means the last two hex digits.  Files are first written with a ".tmp" suffix
+  and then renamed to ".final" by BodyFinalizeWrite.
+
+### Threads and Ownership ###
+
+Note that most ownership checks happen via NS_ASSERT_OWNINGTHREAD which uses
+`nsAutoOwningThread _mOwningThread` created explicitly via NS_DECL_OWNINGTHREAD
+(used for the non-ref-counting Actor classes), or received for free via
+NS_INLINE_DECL_REFCOUNTING.
+
+* PBackground Thread
+  * Manager.  Created by Manager:Factory::GetOrCreate(ManagerId), asserts on
+    PBackgroundThread.
+    * Context.  Created by Manager::Init.
+      * usually born-only Context::Data (NS_INLINE_DECL_THREADSAFE_REFCOUNTING),
+        created by Context::Context's constructor.  Note that it will die on the
+        owning thread if, in Context::Start mState == STATE_CONTEXT_CANCELED.
+* Per-manager IOThread: Created by Manager::Factory::GetOrCreate via
+  NS_NewNamedThread("DOMCacheThread"), passed to Manager to be its mIOThread.
+  Likewise passed to Context::Create to be its mTarget.  The Manager only holds
+  onto the thread to shut it down in its destructor.
+  * dies-only: Context::Data (except for special case noted previously):
+    Context::DispatchAction creates an ActionRunnable (which takes and holds a
+    RefPtr), providing it with mData, then nulls out its own.  The action
+    runnables all make sure to null out their mData on the target thread.
+
+
+
 ## IPDL ##
 
 Protocols:
@@ -78,7 +116,7 @@ Parent stuff:
     just have the magic to open the given connection.
   * DBSchema: collection of actual database manipulating functions.
 * Stream stuff:
-  * StreamConrol family:
+  * StreamControl family:
     * StreamControl
     * CacheStreamControlParent
     * CacheStreamControlChild
@@ -102,7 +140,7 @@ Child stuff:
 ?Thread-usage: Manager docs say the manager should be used on the thread it was
 created on.  Also that there's only one manager.  Presumably the former should
 just more tightly describe that this thread must be PBackground? => Yeah,
-Manager::Factory::GetOrCreate assets it's on the background thread.
+Manager::Factory::GetOrCreate asserts it's on the background thread.
 
 ## Streams ##
 

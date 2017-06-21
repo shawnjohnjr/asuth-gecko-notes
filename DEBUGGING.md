@@ -47,3 +47,9 @@ On a debug build, use `MOZ_IPC_MESSAGE_LOG=1`
 Advisable to use with tee and stderr redirection, so
 
 MOZ_IPC_MESSAGE_LOG=1 ./mach stuff |& tee /tmp/ipc.log
+
+for log inspector stuff against mochitest,
+
+MOZ_IPC_MESSAGE_LOG=1 ./mach mochitest --log-raw /tmp/mochitest.ndjson TESTNAME
+
+I have an alias now that can be used like `ipc-mach-mochitest TESTNAME`

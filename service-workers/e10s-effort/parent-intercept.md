@@ -124,6 +124,10 @@ Redirect begins in the parent:
   * => Redirect3Complete.
   *
 
+#### Opaque Redirects and special cases ####
+
+
+
 ## Patch Explanation ##
 
 Maybe background:

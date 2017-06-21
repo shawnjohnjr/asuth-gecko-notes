@@ -130,10 +130,20 @@ digraph G {
 
   TryHSTSPriming -> HSTSPrimingListener [style=dashed];
   TryHSTSPriming -> ContinueConnect;
+
+  // via StreamTransportService::InputAvailable
+  DetermineContentLength -> OnInputAvailableComplete [style=dashed];
   OnInputAvailableComplete -> ContinueConnect;
+  ContinueConnect -> DetermineContentLength;
+
   // This is a specialized cache mismatch, not sure it matters.
   //OnStopRequest -> ContinueConnect;
+
+  ContinueConnect -> nsCORSListenerProxy [style=dashed];
+  nsCORSListenerProxy -> OnPreflightSucceeded [style=dashed];
   OnPreflightSucceeded -> ContinueConnect;
+
+
   HSTSPrimingListener -> OnHSTSPrimingSucceeded [style=dashed];
   HSTSPrimingListener -> OnHSTSPrimingFailed [style=dashed];
   OnHSTSPrimingSucceeded -> ContinueConnect;
@@ -151,8 +161,10 @@ digraph G {
   srcu_haapi:o -> ContinueAsyncRedirectChannelToURI;
   HandleAsyncAPIRedirect -> ContinueAsyncRedirectChannelToURI [label="NS_FAILED",style=dotted];
 
-  StartRedirectChannelToURI -> WaitForRedirectCallback;
-  StartRedirectChannelToURI -> ContinueAsyncRedirectChannelToURI [label="NS_FAILED",style=dotted];
+  // standalone StartRedirectChannelToURI node and links commented out because
+  // this is all handled by parametrized tables.
+  //StartRedirectChannelToURI -> WaitForRedirectCallback;
+  //StartRedirectChannelToURI -> ContinueAsyncRedirectChannelToURI [label="NS_FAILED",style=dotted];
 
   ContinueAsyncRedirectChannelToURI -> OpenRedirectChannel [label="NS_SUCCEEDED"];
   ContinueAsyncRedirectChannelToURI -> Cancel [label="NS_FAILED",style=dotted];
@@ -184,7 +196,7 @@ digraph G {
   AsyncAbort -> HandleAsyncAbort;
   HandleAsyncAbort -> DoNotifyListener;
 
-  ProcessPartialContent -> Cancel [label="NS_ERROR_CORRUPTED_CONTENT"];
+  ProcessPartialContent -> Cancel [label="NS_ERROR_CORRUPTED_CONTENT",style=dotted];
   // In the mConcurrentCacheAccess case, mTransactionPump doesn't get suspended
   // and things will naturally progress.  TODO: elaborate on this.
   ProcessPartialContent -> "pump mCachePump" [label="mConcurrentCacheAccess"];

@@ -11,9 +11,22 @@ involve bouncing back and forth between the main thread and background thread.
 * asmjscache
 * cache
 
+### Participants ###
+
+* QuotaManager: The PBackground-resident core.  Defined primarily in
+  ActorsParent.cpp.
+* QuotaManagerService: Main-thread singleton that exists to expose
+  nsIQuotaManagerService to XPCOM and receive observer notifications (clear
+  origin, idle/non-idle), communicating these requests to/from the QuotaManager
+  via PBackground-managed PQuota.
+* StorageManager: The StorageManager interface WebIDL binding exposed as
+  navigator.storage.
+
 ### How Usage is Tracked ###
 
 *GroupInfo*, *OriginInfo*
+
+
 
 ## Directories / File System Mapping ##
 
@@ -58,167 +71,42 @@ Total Ordering based on the "storage" numbers:
 * Version 0: (anything before version 1)
 * Version 1:
 
-### Upgrade Logic ###
-
-
-
-#### Nitty Gritty ####
-Per-method descriptions, ordered in a sort of topological sort because some
-methods are called multiple times and I need the columns.
-
-* QuotaManager::EnsureStorageIsInitialized:
-  * if database was not at storage v1 (which is the upgrade case from v0):
-    * MaybeUpgradeIndexedDBDirectory
-    * MaybeUpgradePersistentStorageDirectory
-    * MaybeRemoveOldDirectories
-    * UpgradeStorageFrom0To1
-
-* QuotaManager::MaybeUpgradeIndexedDBDirectory: (called by
-  QuotaManager::EnsureStorageIsInitialized)
-  * move profile/indexedDB to profile/storage/persistent
-
-* QuotaManager::MaybeUpgradePersistentStorageDirectory
-  * bails if the "profile/storage/persistent" directory no longer exists
-  * Uses CreateOrUpgradeDirectoryMetadataHelper::CreateOrUpgradeMetadataFiles
-    once on "persistent" (aPersistent=true) and once on "temporary"
-    (aPersistent=false)
-  * Then moves "persistent" to be "default", which also avoids the routine
-    firing again.
-
-* CreateOrUpgradeDirectoryMetadataHelper::CreateOrUpgradeMetadataFiles:
-  (called by QuotaManager::MaybeUpgradePersistentStorageDirectory)
-  * Operates on either the persistent or temporary directories, and it's fine if
-    they don't exist (because there never was any data), happily bails.
-  * Enumerates over all files, ignoring OSX DSStore files, complaining but
-    ignoring other files, special-casing "moz-safe-about+++home" by deleting it,
-    then processing directories.
-  * If persistent (== not temporary), invoke MaybeUpgradeOriginDirectory to
-    possibly move stuff under idb.  This is done only for persistent because
-    this is the second stage of handling MaybeUpgradeIndexedDBDirectory and the
-    migration from the version=-2 IndexedDB-only world.  Temporary did not
-    exist at that point.
-  * AddOriginDirectory gets invoked which appends an OriginProps to
-    mOriginProps, initializes its mDirectory, and tries to fill-in the mSpec,
-    mAttrs, and mType.  For a chrome directory, those are hard-coded, but
-    otherwise it uses PrinipalOriginAttributes::PopulateFromOrigin and
-    OriginParser::ParserOrigin to try and extract them from the directory name.
-    POA gets first try and is doing the modern thing and looking for the
-    "^suffix" (and yes, the ^ is cool with dumb filesystems) and stripping and
-    processing.  The remaining originNoSuffix (which is the whole directory
-    leaf name if this is pre-v2) gets processed by OriginParser::Parse which
-    mutates the spec to be a real spec based on its parsing.  If an app id was
-    detected in the parse, a fresh POA with explicit (mAppId,
-    mInIsolatedBrowser) is returned, otherwise the original one provided by
-    POA's PopulateFromOrigin is propagated.
-  * If (!mPersistent), calls GetDirectoryMetadataGetDirectoryMetadata to check
-    the .metadata file.  (The !mPersistent check is because the call to
-    MaybeUpgradeOriginDirectory above already interpreted the lack of a
-    .metadata file as a need to do something and touched it into existence if it
-    did not exist.  Similarly, in our DoProcessOriginDirectories method,
-    mPersistent again gets a special-case which will 100% invoke
-    CreateDirectoryMetadata.)  If it did not exist, GetLastModifiedTime is used
-    to set the originProps mTimestamp and mNeedsRestore is flagged.  If it did
-    exist and the .metadata file was long enough to include the isApp boolean,
-    then mIgnore is set.  (If not set, we try and append the flag into
-    existence.)
-  * elif !IsOriginWhitelistedForPersistentStorage (and possibly mPersistent,
-    which would be the case for something that was in persistent but is soon
-    ending up in default), GetLastModifiedTime is used to set the mTimestamp to
-    use as the atime.
-
-
-* CreateOrUpgradeDirectoryMetadataHelper::MaybeUpgradeOriginDirectory:
-  (called as part of this->CreateOrUpgradeMetadataFiles)
-  * If there's no ".metadata" file in the directory, idempotently create the
-    "idb" directory but warning if it already existed.
-  * Move everything that's not the idb directory into the idb directory.
-    (There's no other skipping since only the .metadata file that we know didn't
-    exist could be in there.  The OSX DSStore could get moved if it exists, but
-    it's not a big concern.)
-  * Create the metadata file as 0644 but don't actually do anything with it.
-
-* CreateOrUpgradeDirectoryMetadataHelper::GetDirectoryMetadata
-  (called from this->CreateOrUpgradeMetadataFiles, different from the
-   UpgradeDirectoryMetadataFrom1To2Helper's method of the same name.)
-  * Opens the .metadata file as a binary stream
-  * reads [uint64_t timestamp, Cstring group, Cstring origin, bool isApp whose
-    value is ignored but where the file length indicates HasIsApp] and returns.
-
-* GetLastModifiedTime (in microseconds, a la PRTime):
-  * Walks a directory and its children, accumulating the most recent file
-    modification time it finds for files that aren't QM's own ".metadata" or
-    ".metadata-v2" file (both of which track/store atime), or the inescapable
-    OSX .DS_Store files created by its Finder.
-
-* CreateOrUpgradeDirectoryMetadataHelper::DoProcessOriginDirectories:
-  * Iterates over the originProps.
-  * If (mPersistent) (only persistent/temporary existed in the being-upgraded
-    scheme), CreateDirectoryMetadata() for sure.  This is important because if
-    the file didn't exist, MaybeUpgradeOriginDirectory only touched .metadata,
-    it didn't populate it.
-    * If IsOriginWhitelistedForPersistentStorage() returns true, move
-      the directory to the new "permanent" dir (which we may need to create).
-      If the target directory already existed, QM_WARNING and delete the source
-      directory, thereby favoring the already-upgraded target.  (This happened
-      if the user had been jumping around between Gecko versions.)
-  * Elif (not persistent and) we had marked it mNeedsRestore because the
-    .metadata file did not exist, create it using what's in originProps.  So the
-    last modified time has become our last access time, and all the origin data
-    is from the directory name inference we did.
-  * Elif !mIgnore, open the .metadata file and append mIsApp.  (mIgnore was set
-    if the isApp bool was already present.)
-
-* QuotaManager::MaybeRemoveOldDirectories: (called by
-  QuotaManager::EnsureStorageIsInitialized)
-  * nukes profile/indexedDB and profile/storage/persistent.
-
-* QuotaManager::UpgradeStorageFrom0To1: (called by
-  QuotaManager::EnsureStorageIsInitialized)
-  * Iterates over (persistent, temporary, default), and for each, creating a
-    UpgradeDirectoryMetadataFrom1To2Helper and invoking its UpgradeMetadataFiles
-    method for each dir.
-  * Marks the storage version as upgraded.
-
-* UpgradeDirectoryMetadataFrom1To2Helper
-  * AddOriginDirectory: see CreateOrUpgradeMetadataFiles
-
-* UpgradeDirectoryMetadataFrom1To2Helper::GetDirectoryMetadata
-  (called by this->UpgradeMetadataFiles, differs from
-  CreateOrUpgradeDirectoryMetadataHelper version by returning isApp, which makes
-  sense given its known to be in a better state.)
-  * Opens the .metadata file as a binary stream
-  * Reads [uint64_t timestamp, Cstring group, Cstring origin, bool isApp] and
-    returns.
-
-* RestoreDirectoryMetadata2Helper::RestoreMetadata2File:
-  * AddOriginDirectory: see CreateOrUpgradeMetadataFiles
-
-* UpgradeDirectoryMetadataFrom1To2Helper::DoProcessOriginDirectories
-  * Iterates over all the accumulated origin props, and for each:
-  * If mNeedsRestore
-
-
-### Legacy Directories ###
-(and how they get upgraded/nuked out of existence)
-
-* "indexedDB" under the mBasePath used to be where IDB stuff lived.
-  MaybeUpgradeIndexedDBDirectory tries to move the dir to storage/persistent if
-  it does not already exist.  If the IDB dir continues to exist after that (say,
-  due to storage/persistent already existing due to moving back and forth
-  between Gecko versions around when the migration was introduced), the
-  newly introduced MaybeRemoveOldDirectories() will recursively delete it.
-* "storage/persistent" under the mBasePath, another step on the way to the
-  current storage/{default,permanent,temporary} scheme.  If "storage/default"
-  does not already exist (say due to jumping between gecko versions), uses
-  CreateOrUpgradeDirectoryMetadataHelper (using aPersistent = true) to migrate
-  the directory tree.  Also uses it to migrate the temporary directory
-  (using aPersistent = false).  These both process their directories in-place.
-  Then persistent gets moved to default. *does the upgrade process move things
-  over to permanent as appropriate?*.
-
-
 
 ## Startup ##
+
+In short:
+* QuotaManager lazy initializes on a few levels.
+* The first call to EnsureOriginIsInitialized will trigger a full traversal of
+  the storage/default/ and storage/temporary/ directories.
+
+In long:
+* QuotaManager::GetOrCreate brings it into existence.  2 sources:
+  1. A PQuota request is translated into an OriginOperationBase op that will
+     run and invoke QM::GetOrCreate.  (The `Quota` class is the PQuotaParent
+     impl, Quotachild is the PQuotaChild impl.)
+  2. A QM Client which ends up duplicating the OriginOperationBase state
+     machine (either with its own, or the dom/quota/shared/ClientContext.h
+     implementation extracted from dom/cache/) does it.
+* EnsureStorageIsInitialized checks PROFILE/storage.sqlite, performing
+  upgrades if needed.
+  * This may be directly triggered by OriginOperationBase when
+    mNeedsQuotaManagerInit, or as a side-effect of calls to
+    QuotaManager::EnsureOriginIsInitialized.
+* EnsureOriginIsInitialized
+  * mTemporaryStorageInitialized logic; single-shot.  Calls
+    InitializeRepository() for temporary and default, order varying by caller.
+    * InitializeRepository walks their mangled origin child directories, calling
+      InitializeOrigin for each subdirectory.
+    * InitializeOrigin gets invoked for each origin dir, walking its files, and
+      for client-named directories (as determined by Client::TypeFromText), it
+      invokes the client's InitOrigin() method.
+      * As long as the persistence type isn't PERSISTENCE_TYPE_PERSISTENT (which
+        is for chrome-privileged stuff; StorageManager.persist() is tracked as
+        persisted and doesn't affect this), trackQuota is true and a UsageInfo
+        is constructed, passed to the client InitOrigin calls, and then passed
+        to InitQuotaForOrigin.
+      * InitQuotaForOrigin stores stuff in mGroupInfoPairs (for the group parts)
+        and inside its GroupInfo value (for the origin bits).
 
 ### Creation ###
 
@@ -229,7 +117,8 @@ then has a state machine where each step may run on different threads.
 Currently, this is what happens:
 * State::Initial: main thread, Init(): Resolve NS_APP_INDEXEDDB_PARENT_DIR
   ("indexedDBPDir") from the directory service if available, failing over to
-  NS_APP_USER_PROFILE_50_DIR if not.  In practice,
+  NS_APP_USER_PROFILE_50_DIR if not.  In practice, the profile dir is used, with
+  the parent dir having been a b2g thing (IIRC).
 * State::CreatingManager: background/owning thread, CreateManager(): news
   QuotaManager() using that path.
 * State::RegisteringObserver: main thread, RegisterObserver():
@@ -252,6 +141,14 @@ Currently, this is what happens:
   * Iterates over the callbacks directly running them.  (Multiple callbacks can
     stack up because there's only ever one gCreateRunnable and the callbacks
     keep getting tacked on.)
+
+### Storage Initialization via EnsureStorageIsInitialized() ###
+
+OriginOperationBase::DirectoryWork calls this when mNeedsQuotaManagerInit is
+true.  It checks PROFILE/storage.sqlite for existence and the correct schema
+version.  If the file was missing or the wrong version, an upgrade sweep occurs
+which potentially transforms the contents of the PROFILE/storage/ directory
+every time.
 
 ## Quota Tracking ##
 

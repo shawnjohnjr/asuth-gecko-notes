@@ -13,6 +13,13 @@ From nsISupportsImpl.h:
 * NS_DECL_OWNINGTHREAD
 * NS_ASSERT_OWNINGTHREAD
 
+NS_DECL_OWNINGTHREAD also happens "for free"/"as a side effect of"
+NS_INLINE_DECL_REFCOUNTING_WITH_DESTROY and its more common form,
+NS_INLINE_DECL_REFCOUNTING.  This is because there's also the aptly named
+NS_INLINE_DECL_THREADSAFE_REFCOUNTING, and in DEBUG builds the non-threadsafe
+refcounting needs to be able to assert if you try and manipulate refcount on
+more than one thread.
+
 ## Structured Cloning ##
 
 Wire Representations:
