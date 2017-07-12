@@ -14,3 +14,5 @@ The trivial issues are:
   imitate how IDB handles things, with the Blob being associated with an actor
   that is known in the parent process.
   - This would imply StreamControl being able to 'upgrade' a stream to a Blob.
+
+### Byte cache; alternate data stream ###
