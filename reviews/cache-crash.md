@@ -17,6 +17,18 @@ $ du -csh *
 12M	total
 ```
 
+bell.ca tv variants:
+* Main suspicious idiom is:
+  * addEventListener('activate', function(event) {...}
+    * event.waitUntil(cache.keys().then(function(cacheNames) {...}
+      * return Promise.all(cacheNames.filter().map(function(cacheName) {
+        return caches.delete().then(random callback func that can return a
+        promise}).
+      * The filter is to decide what to delete.  It skips '$$$inactive$$$' and
+        the current version, but keeps anything with the CACHE_PREFIX.  This
+        avoids deleting caches not managed by the given SW (as indicated by
+        prefix.)
+
 #### GDB investigation of non-crashing shutdown triggered by our client reset.
 
 * we survive to the event loop spinning

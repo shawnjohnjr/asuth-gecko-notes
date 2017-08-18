@@ -1,0 +1,16 @@
+https://bugzilla.mozilla.org/show_bug.cgi?id=1388584
+
+### Log analysis ###
+
+2017-08-11 13:33:00.379000 UTC - [Main Thread]: D/mozStorage Opening connection to 'places.sqlite' (000001CE995314E0)
+
+* Main Thread opens places.sqlite, 000001CE995314E0
+  * Connection itself does page_size, cache_size, sync=normal pragmas.
+  * Places does: page_size query, temp_store=memory, journal_mode=wal,
+    wal_autocheckpoint=62, journal_size_limit=4096000, busy_timeout=100,
+    foreign_keys=ON.
+* Main Thread opens favicons.sqlite, 000001CE995315C0
+  * Connection itself does page_size, cache_size, sync=normal pragmas.
+  * Places does journal_mode=wal, wal_autocheckpoint=62,
+    journal_size_limit=4096000, auto_vacuum=INCREMENTAL
+* Main thread does initial population of favicons.sqlite, 

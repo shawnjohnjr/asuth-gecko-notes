@@ -18,6 +18,3 @@
       https://bugzilla.mozilla.org/show_bug.cgi?id=1267349
   * IndexedDB file path length:
     https://bugzilla.mozilla.org/show_bug.cgi?id=1143003
-
-## Outstanding Paged Out
-* Referrer policy updates: https://bugzilla.mozilla.org/show_bug.cgi?id=1264792

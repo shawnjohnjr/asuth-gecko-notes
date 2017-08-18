@@ -126,6 +126,20 @@ Redirect begins in the parent:
 
 #### Opaque Redirects and special cases ####
 
+**non-e10s opaque redirect missing piece**
+https://searchfox.org/mozilla-central/source/netwerk/protocol/http/nsHttpChannel.cpp#3802
+
+http channel goes out of its way for the cache entry to remain the same, so in
+the case of the final last-ditch opaque redirect, we end up using the same cache
+entry.
+
+As I also said on IRC here:
+ I think https://searchfox.org/mozilla-central/source/netwerk/protocol/http/nsHttpChannel.cpp#2944 handles that case, since https://searchfox.org/mozilla-central/source/netwerk/protocol/http/InterceptedChannel.cpp#318 happened by that point
+
+and in another similar location for SetupReplacementChannel and I think others,
+a bypass_serviceworkers flag gets set in that explicit scenario as well.
+
+This seems to suggest it wants a flow chart sort of approach.
 
 
 ## Patch Explanation ##
