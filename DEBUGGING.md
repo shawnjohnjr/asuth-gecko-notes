@@ -1,3 +1,9 @@
+## Standard Test-Running ##
+
+```
+xvfb-run ./mach mochitest --keep-open=false TESTPATH
+```
+
 ## Builds and Conditionals ##
 
 In order to avoid creating code that breaks when it gets to beta/release:
@@ -46,10 +52,23 @@ On a debug build, use `MOZ_IPC_MESSAGE_LOG=1`
 
 Advisable to use with tee and stderr redirection, so
 
+```
 MOZ_IPC_MESSAGE_LOG=1 ./mach stuff |& tee /tmp/ipc.log
+```
 
 for log inspector stuff against mochitest,
-
+```
 MOZ_IPC_MESSAGE_LOG=1 ./mach mochitest --log-raw /tmp/mochitest.ndjson TESTNAME
+```
 
 I have an alias now that can be used like `ipc-mach-mochitest TESTNAME`
+
+Or if doing mach run:
+```
+MOZ_IPC_MESSAGE_LOG=1 ./mach run -P nightly |& tee ~/t/logs/ipc.log
+```
+
+#### log viewing for asuth
+
+
+http://localhost/live/glast-logic-inspector/?href=/logs/ipc.log

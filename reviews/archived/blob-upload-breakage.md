@@ -6,6 +6,190 @@ inspection first.  (Noting that extensive refactoring of the blob codebase has
 happenened since the patch, so the focus is on determining the implied
 conditions in order to then reproduce them in a test.)
 
+## Bug 1393063 variant (built against release) ##
+
+### Investigating the stream that the HttpChannelParent deserializes
+
+(rr) break HttpChannelParent.cpp:570
+
+
+### Messed up File closing
+
+(more recent investigation at top, older below)
+
+#### Source of the close
+
+This just looks like REOPEN_ON_REWIND is freaking out.
+
+The PR_Close invocation line:
+```
+(rr) break nsFileStreams.cpp:169
+Breakpoint 2 at 0x7f1306e66aae: file /home/visbrero/rev_control/hg/mozilla-beta/netwerk/base/nsFileStreams.cpp, line 169.
+```
+
+```
+Thread 5 hit Breakpoint 2, nsFileStreamBase::Close (this=this@entry=0x7f12d5fee860) at /home/visbrero/rev_control/hg/mozilla-beta/netwerk/base/nsFileStreams.cpp:169
+169	        if (PR_Close(mFD) == PR_FAILURE)
+(rr) cbt
+  0 nsFileStreamBase::Close                     at netwerk/base/nsFileStreams.cpp:169 0x7f1306e66aae
+      this=0x7f12d5fee860 this0
+  1 nsFileInputStream::Close                    at netwerk/base/nsFileStreams.cpp:495 0x7f1306e6bc8d
+      this=0x7f12d5fee860 this0
+  2 nsFileInputStream::Serialize                at netwerk/base/nsFileStreams.cpp:602 0x7f1306e75f5c
+      this=0x7f12d5fee860 this0
+      aParams=@0x7f12eb2fd790
+      aFileDescriptors=nsIIPCSerializableInputStream::FileDescriptorArray & = {{     mHandle = 84   }}
+  3 ipc::(anonymous namespace)::SerializeInputStreamWithFdsParent<mozilla::ipc::PBackgroundParent> at ipc/glue/IPCStreamUtils.cpp:106 0x7f13073f3b09
+      aStream=0x7f12d5fee8b8
+      aValue=@0x7f12eb2fd790
+      aManager=0x7f12e3fe3800 aManager3
+  4 ipc::(anonymous namespace)::SerializeInputStreamParent<mozilla::ipc::PBackgroundParent> at ipc/glue/IPCStreamUtils.cpp:239 0x7f13073fa47f
+      aStream=0x7f12d5fee8a8 aStream4
+      aManager=0x7f12e3fe3800 aManager3
+      aValue=0x0 aValue4
+      aOptionalValue=0x7f12eb2fd790 aOptionalValue4
+      aDelayedStart=<optimized out>
+  5 ipc::AutoIPCStream::Serialize               at ipc/glue/IPCStreamUtils.cpp:570 0x7f13073fa639
+      this=0x7f12eb2fd790 aOptionalValue4
+      aStream=0x7f12d5fee8a8 aStream4
+      aManager=0x7f12e3fe3800 aManager3
+  6 dom::IPCBlobInputStreamParent::RecvStreamNeeded at dom/file/ipc/IPCBlobInputStreamParent.cpp:129 0x7f130927b296
+      this=0x7f12d609a340 this6
+  7 ipc::PIPCBlobInputStreamParent::OnMessageReceived at obj-firefox-debug/ipc/ipdl/PIPCBlobInputStreamParent.cpp:110 0x7f1307529cc9
+      this=0x7f12d609a340 this6
+      msg__=<optimized out>
+  8 ipc::PBackgroundParent::OnMessageReceived   at obj-firefox-debug/ipc/ipdl/PBackgroundParent.cpp:1006 0x7f130787713a
+      this=0x7f12e3fe3800 aManager3
+      msg__=@0x7f12e43c4cb0
+  9 ipc::MessageChannel::DispatchAsyncMessage   at ipc/glue/MessageChannel.cpp:2075 0x7f13073f0161
+      this=0x7f12e3fe3920 this9
+      aMsg=@0x7f12e43c4cb0
+ 10 ipc::MessageChannel::DispatchMessage(IPC::Message&&) at ipc/glue/MessageChannel.cpp:2001 0x7f13073fd005
+
+ 11 ipc::MessageChannel::RunMessage             at ipc/glue/MessageChannel.cpp:1870 0x7f13073ff28a
+      this=0x7f12e3fe3920 this9
+      aTask=@0x7f12e43c4c60
+ 12 ipc::MessageChannel::MessageTask::Run       at ipc/glue/MessageChannel.cpp:1903 0x7f13073ff4f3
+      this=0x7f12e43c4c60
+ 13 nsThread::ProcessNextEvent                  at xpcom/threads/nsThread.cpp:1418 0x7f1306da0448
+      this=0x7f12f9d614c0 this13
+      aMayWait=<optimized out>
+      aResult=0x7f12eb2fdd27
+ 14 NS_ProcessNextEvent                         at xpcom/threads/nsThreadUtils.cpp:475 0x7f1306da44b2
+      aThread=0x7f12f9d614c0 this13
+      aMayWait=false
+ 15 ipc::MessagePumpForNonMainThreads::Run      at ipc/glue/MessagePump.cpp:338 0x7f13073f4952
+      this=0x7f12f29f1980
+      aDelegate=0x7f12ebe27330 aDelegate15
+ 16 MessageLoop::RunInternal                    at ipc/chromium/src/base/message_loop.cc:238 0x7f13073727ad
+      this=0x7f12ebe27330 aDelegate15
+ 17 MessageLoop::RunHandler                     at ipc/chromium/src/base/message_loop.cc:231 0x7f13073727f9
+      this=0x7f12ebe27330 aDelegate15
+ 18 MessageLoop::Run                            at ipc/chromium/src/base/message_loop.cc:211 0x7f1307372a0c
+      this=0x7f12ebe27330 aDelegate15
+ 19 nsThread::ThreadFunc                        at xpcom/threads/nsThread.cpp:501 0x7f1306da4781
+      aArg=<optimized out>
+ 20 _pt_root                                    at nsprpub/pr/src/pthreads/ptthread.c:216 0x7f131a2bf6e3
+      arg=0x7f12f3650aa0 arg20
+ 21 start_thread                                at pthread_create.c:456 0x7f1319dfe6da
+      arg=0x7f12eb2fe700 arg21
+ 22 clone                                       at ???:105 0x7f131908cd7f
+```
+
+#### Parent NS_BASE_STREAM_CLOSED generation
+
+```
+(rr) cbt
+  0 nsFileStreamBase::DoPendingOpen             at netwerk/base/nsFileStreams.cpp:374 0x7f1306e95e51
+      this=0x7f12d5fee860 this0
+  1 nsFileStreamBase::Tell                      at netwerk/base/nsFileStreams.cpp:73 0x7f1306e6bbb7
+      this=0x7f12d5fee860 this0
+      result=0x7f12d5fee8e0
+  2 nsFileInputStream::Close                    at netwerk/base/nsFileStreams.cpp:490 0x7f1306e6bcc0
+      this=0x7f12d5fee860 this0
+  3 nsFileInputStream::~nsFileInputStream       at netwerk/base/nsFileStreams.h:161 0x7f1306e962ee
+      this=0x7f12d5fee860 this0
+      __in_chrg=<optimized out>
+  4 nsFileInputStream::~nsFileInputStream       at netwerk/base/nsFileStreams.h:162 0x7f1306e962ee
+      this=0x7f12d5fee860 this0
+      __in_chrg=<optimized out>
+  5 nsFileStreamBase::Release                   at netwerk/base/nsFileStreams.cpp:55 0x7f1306e6598d
+      this=0x7f12d5fee860 this0
+  6 nsFileInputStream::Release                  at netwerk/base/nsFileStreams.cpp:389 0x7f1306e659ad
+      this=0x7f12d5fee860 this0
+  7 nsCOMPtr<nsIInputStream>::~nsCOMPtr         at obj-firefox-debug/dist/include/nsCOMPtr.h:404 0x7f130927b1a2
+      this=0x7f12eb2fd738
+      __in_chrg=<optimized out>
+  8 dom::IPCBlobInputStreamParent::RecvStreamNeeded at dom/file/ipc/IPCBlobInputStreamParent.cpp:111 0x7f130927b1a2
+      this=<optimized out>
+  9 ipc::PIPCBlobInputStreamParent::OnMessageReceived at obj-firefox-debug/ipc/ipdl/PIPCBlobInputStreamParent.cpp:110 0x7f1307529cc9
+      this=0x7f12d609a340
+      msg__=<optimized out>
+ 10 ipc::PBackgroundParent::OnMessageReceived   at obj-firefox-debug/ipc/ipdl/PBackgroundParent.cpp:1006 0x7f130787713a
+      this=0x7f12e3fe3800
+      msg__=@0x7f12e43c4cb0
+ 11 ipc::MessageChannel::DispatchAsyncMessage   at ipc/glue/MessageChannel.cpp:2075 0x7f13073f0161
+      this=0x7f12e3fe3920 this11
+      aMsg=@0x7f12e43c4cb0
+ 12 ipc::MessageChannel::DispatchMessage(IPC::Message&&) at ipc/glue/MessageChannel.cpp:2001 0x7f13073fd005
+
+ 13 ipc::MessageChannel::RunMessage             at ipc/glue/MessageChannel.cpp:1870 0x7f13073ff28a
+      this=0x7f12e3fe3920 this11
+      aTask=@0x7f12e43c4c60
+ 14 ipc::MessageChannel::MessageTask::Run       at ipc/glue/MessageChannel.cpp:1903 0x7f13073ff4f3
+      this=0x7f12e43c4c60
+ 15 nsThread::ProcessNextEvent                  at xpcom/threads/nsThread.cpp:1418 0x7f1306da0448
+      this=0x7f12f9d614c0 this15
+      aMayWait=<optimized out>
+      aResult=0x7f12eb2fdd27
+ 16 NS_ProcessNextEvent                         at xpcom/threads/nsThreadUtils.cpp:475 0x7f1306da44b2
+      aThread=0x7f12f9d614c0 this15
+      aMayWait=false
+ 17 ipc::MessagePumpForNonMainThreads::Run      at ipc/glue/MessagePump.cpp:338 0x7f13073f4952
+      this=0x7f12f29f1980
+      aDelegate=0x7f12ebe27330 aDelegate17
+ 18 MessageLoop::RunInternal                    at ipc/chromium/src/base/message_loop.cc:238 0x7f13073727ad
+      this=0x7f12ebe27330 aDelegate17
+ 19 MessageLoop::RunHandler                     at ipc/chromium/src/base/message_loop.cc:231 0x7f13073727f9
+      this=0x7f12ebe27330 aDelegate17
+ 20 MessageLoop::Run                            at ipc/chromium/src/base/message_loop.cc:211 0x7f1307372a0c
+      this=0x7f12ebe27330 aDelegate17
+ 21 nsThread::ThreadFunc                        at xpcom/threads/nsThread.cpp:501 0x7f1306da4781
+      aArg=<optimized out>
+ 22 _pt_root                                    at nsprpub/pr/src/pthreads/ptthread.c:216 0x7f131a2bf6e3
+      arg=0x7f12f3650aa0 arg22
+ 23 start_thread                                at pthread_create.c:456 0x7f1319dfe6da
+      arg=0x7f12eb2fe700 arg23
+ 24 clone                                       at ???:105 0x7f131908cd7f
+```
+
+
+#### Suspicion
+The I/O log showed right after the ContinueAsyncOpen in the child running:
+```
+[Parent 22222] WARNING: NS_ENSURE_SUCCESS(rv, rv) failed with result 0x80470002: file /home/visbrero/rev_control/hg/mozilla-beta/netwerk/base/nsFileStreams.cpp, line 74
+```
+which is NS_BASE_STREAM_CLOSED
+```
+(rr) pp (nsresult)0x80470002
+nsresult::NS_BASE_STREAM_CLOSED
+```
+
+
+### Breakpoints
+#### Child
+```
+(rr) info breakpoints
+Num     Type           Disp Enb Address    What
+1       breakpoint     keep y   <PENDING>  HttpChannelChild.cpp:2463
+2       breakpoint     keep y   <PENDING>  HttpChannelChild.cpp:2464
+
+(rr) break mozilla::ipc::IPCStreamSource::OnEnd(nsresult)
+Breakpoint 4 at 0x7fab4c815fda: file /home/visbrero/rev_control/hg/mozilla-beta/ipc/glue/IPCStreamSource.cpp, line 298.
+```
+#### Parent ####
+HttpChannelChild::OnCopyComplete
+
 ## Alternate Repro ##
 
 Youtube thumbnail upload.
@@ -130,6 +314,107 @@ The analysis of interesting stuff seems to be:
 * e is then appended to c.body.
 * Some propagation passes occur:
   *
+
+## rr repro 2 analysis
+(divergence happened due to reboots/updates, had to ditch repro 1)
+
+### canonical open meta
+
+(rr) when
+Current event: 186970
+
+### breakpoints
+added breakpoint 3 to back up to the SW failure to paranoia check that one.
+```
+(rr) info breakpoints
+Num     Type           Disp Enb Address            What
+1       breakpoint     keep y   0x00007f0d31467ad7 in mozilla::net::HttpChannelChild::ContinueAsyncOpen() at /home/visbrero/rev_control/hg/mozilla-central/netwerk/protocol/http/HttpChannelChild.cpp:2523
+	breakpoint already hit 3 times
+2       breakpoint     keep y   0x00007f0d31467af6 in mozilla::net::HttpChannelChild::ContinueAsyncOpen() at /home/visbrero/rev_control/hg/mozilla-central/netwerk/protocol/http/HttpChannelChild.cpp:2524
+	breakpoint already hit 2 times
+3       breakpoint     keep y   0x00007f0d33df61c2 in mozilla::dom::workers::(anonymous namespace)::ContinueDispatchFetchEventRunnable::Run() at /home/visbrero/rev_control/hg/mozilla-central/dom/workers/ServiceWorkerManager.cpp:2712
+```
+#### SW re-investigation, breakpoint 3
+
+
+
+```
+(rr) break 'mozilla::net::HttpChannelChild::OnCopyComplete'
+Breakpoint 10 at 0x7f0d3144bee2: file /home/visbrero/rev_control/hg/mozilla-central/netwerk/protocol/http/HttpChannelChild.cpp, line 3397.
+```
+
+right, so the problem was OnCopyComplete was shadowed by the child, whoops.
+
+```
+(rr) p &channel->mStatus.mValue._M_i
+$9 = (nsresult *) 0x7f0d163833d0
+(rr) watch *0x7f0d163833d0
+Hardware watchpoint 8: *0x7f0d163833d0
+```
+
+er, the below breakpoint didn't work, switching to data breakpoint
+
+```
+(rr) break 'mozilla::net::HttpBaseChannel::OnCopyComplete(nsresult)'
+Breakpoint 4 at 0x7f0d313ffcdc: file /home/visbrero/rev_control/hg/mozilla-central/netwerk/protocol/http/HttpBaseChannel.cpp, line 916.
+```
+
+The problem is an NS_BASE_STREAM_WOULD_BLOCK being returned as the
+HttpBaseChannel::OnCopyComplete result of HttpBaseChannel::EnsureUploadStreamIsCloneable
+
+```
+(rr) cbt paste
+  0 dom::workers::(anonymous namespace)::ContinueDispatchFetchEventRunnable::Run
+    dom/workers/ServiceWorkerManager.cpp:2712
+  1 nsPermissionManager::WhenPermissionsAvailable
+    extensions/cookie/nsPermissionManager.cpp:3368
+  2 dom::workers::ServiceWorkerManager::<lambda()>::operator()
+    dom/workers/ServiceWorkerManager.cpp:2819
+  3 detail::RunnableFunction<mozilla::dom::workers::ServiceWorkerManager::DispatchFetchEvent(const mozilla::OriginAttributes&, nsIDocument*, const nsAString&, nsIInterceptedChannel*, bool, bool, mozilla::ErrorResult&)::<lambda()> >::Run(void)
+    obj-firefox-debug/dist/include/nsThreadUtils.h:527
+  4 net::HttpBaseChannel::EnsureUploadStreamIsCloneableComplete
+    netwerk/protocol/http/HttpBaseChannel.cpp:939
+  5 detail::RunnableMethodArguments<nsresult>::applyImpl<mozilla::net::HttpChannelChild, void (mozilla::net::HttpBaseChannel::*)(nsresult), StoreCopyPassByConstLRef<nsresult>, 0ul>
+    obj-firefox-debug/dist/include/nsThreadUtils.h:1142
+  6 detail::RunnableMethodArguments<nsresult>::apply<mozilla::net::HttpChannelChild, void (mozilla::net::HttpBaseChannel::*)(nsresult)>
+    obj-firefox-debug/dist/include/nsThreadUtils.h:1149
+  7 detail::RunnableMethodImpl<mozilla::net::HttpChannelChild*, void (mozilla::net::HttpBaseChannel::*)(nsresult), true, (mozilla::RunnableKind)0, nsresult>::Run
+    obj-firefox-debug/dist/include/nsThreadUtils.h:1192
+  8 nsThread::ProcessNextEvent
+    xpcom/threads/nsThread.cpp:1033
+  9 NS_ProcessNextEvent
+    xpcom/threads/nsThreadUtils.cpp:521
+ 10 ipc::MessagePump::Run
+    ipc/glue/MessagePump.cpp:97
+ 11 ipc::MessagePumpForChildProcess::Run
+    ipc/glue/MessagePump.cpp:302
+ 12 MessageLoop::RunInternal
+    ipc/chromium/src/base/message_loop.cc:326
+ 13 MessageLoop::RunHandler
+    ipc/chromium/src/base/message_loop.cc:319
+ 14 MessageLoop::Run
+    ipc/chromium/src/base/message_loop.cc:299
+ 15 nsBaseAppShell::Run
+    widget/nsBaseAppShell.cpp:158
+ 16 XRE_RunAppShell
+    toolkit/xre/nsEmbedFunctions.cpp:882
+ 17 ipc::MessagePumpForChildProcess::Run
+    ipc/glue/MessagePump.cpp:270
+ 18 MessageLoop::RunInternal
+    ipc/chromium/src/base/message_loop.cc:326
+ 19 MessageLoop::RunHandler
+    ipc/chromium/src/base/message_loop.cc:319
+ 20 MessageLoop::Run
+    ipc/chromium/src/base/message_loop.cc:299
+ 21 XRE_InitChildProcess
+    toolkit/xre/nsEmbedFunctions.cpp:699
+ 22 BootstrapImpl::XRE_InitChildProcess
+    toolkit/xre/Bootstrap.cpp:65
+ 23 content_process_main
+    browser/app/../../ipc/contentproc/plugin-container.cpp:64
+ 24 main
+    browser/app/nsBrowserApp.cpp:285
+```
 
 ## rr repro 1 analysis
 

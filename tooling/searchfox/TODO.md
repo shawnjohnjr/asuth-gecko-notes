@@ -60,3 +60,8 @@ virtual bool MainThreadRun() override;
 
 Currently shipping searchfox and dev server, when clicking on either part of
 "nsIChannel::LOAD_REPLACE" brings up the auto-generated header.
+
+## examples to diagram or what not
+
+* The HttpBaseChannel HttpAsyncAborter mess with AsyncAbort(),
+  HandleAsyncAbort(), AsyncCall(), etc.

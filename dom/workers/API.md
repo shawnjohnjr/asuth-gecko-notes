@@ -2,6 +2,16 @@
 
 ## Service Workers ##
 
+### Timing / Races ###
+
+* navigator.serviceWorker.ready waits for there to be a registration and an
+  active worker.  If there was already a registration with an active worker, it
+  resolves immediately.
+* navigator.serviceWorkerRegister() has 2 behaviors (see section for details):
+  * fast-path resolves if the script and its settings are alread configured for
+    the scope, allowing the registration call to be a no-op.
+  * resolves at "installing" if already registered
+
 ### register() ###
 
 Register's resolution timeline looks like

@@ -23,7 +23,7 @@ the Statement if it already exists.  If one didn't exist, they:
   This is saved off on the Statement.
 
 
-### Minutae
+### Minutae/old
 
 StatementRowHolder and StatementParamsHolder subclass StatementJSObjectHolder
 which:
@@ -36,7 +36,7 @@ Each of their destructors:
   get back to their root mozIStorageStatementParams/mozIStorageStatementRow
   interface.  They then static_cast the raw pointer (via get()) to
   StatementParams/StatementRow,  which lets them...
-- null-out the type's Statement `*mStatement`
+- null-out the type's `Statement *mStatement`.
 
 #### Theory? / Stuff going on:
 

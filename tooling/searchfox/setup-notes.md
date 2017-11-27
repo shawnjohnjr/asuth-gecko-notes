@@ -29,10 +29,9 @@ cargo build --release --verbose
 git clone https://github.com/bill-mccloskey/mozsearch-mozilla.git config
 
 mkdir index
-mkdir scratch
 
-infrastructure/indexer-setup.sh config index scratch
-infrastructure/indexer-run.sh config scratch
+infrastructure/indexer-setup.sh config index
+infrastructure/indexer-run.sh config index
 ```
 
 My second run of indexer-setup.sh screwed up...
