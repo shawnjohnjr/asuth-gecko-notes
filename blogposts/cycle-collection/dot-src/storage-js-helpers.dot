@@ -1,0 +1,62 @@
+digraph G {
+  newrank = true;
+  rankdir = "TD";
+  fontname = "Sans-Serif";
+  splines = spline;
+
+  node [shape=none, fontname="Helvetica", fontsize=10, colorscheme=pastel28];
+  edge [arrowhead=open];
+
+  statement [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="ifaceCanon"><I>mozIStorageStatement</I></td></tr>
+    <tr><td port="impl"><B>storage::Statement</B></td></tr>
+    <tr><td port="holderP" bgcolor="1">nsMainThreadPtrHolder mStatementParamsHolder</td></tr>
+    <tr><td port="holderR" bgcolor="1">nsMainThreadPtrHolder mStatementRowHolder</td></tr></table>>];
+
+  xpcWrappedNative [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="iface"><I>nsIXPConnectJSObjectHolder</I></td></tr>
+    <tr><td port="impl"><B>XPCWrappedNative</B></td></tr>
+    <tr><td port="mFlatJSObject" bgcolor="1">JS::TenuredHeap mFlatJSObject</td></tr></table>>];
+
+  jsObjHolder [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="iface"><I>nsIXPConnectJSObjectHolder</I></td></tr>
+    <tr><td port="impl"><B>StatementJSHolder</B></td></tr>
+    <tr><td port="mHolder" bgcolor="1">nsCOMPtr mHolder</td></tr></table>>];
+
+  paramsHolder [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="impl"><B>StatementParamsHolder</B></td></tr></table>>];
+
+  rowHolder [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="iface"><I>nsISupports</I></td></tr>
+    <tr><td port="impl"><B>StatementRowHolder</B></td></tr>
+    <tr><td port="mRow" bgcolor="1">RefPtr mRow</td></tr></table>>];
+
+  wrapperCache [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="impl"><B>nsWrapperCache</B></td></tr></table>>];
+
+  row [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="iface"><I>nsISupports</I></td></tr>
+    <tr><td port="impl"><B>StatementRow</B></td></tr>
+    <tr><td port="mStatement" bgcolor="2">WEAK mStatement</td></tr></table>>];
+
+  params [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+    <tr><td port="ifaceXPC"><I>nsIXPCScriptable</I></td></tr>
+    <tr><td port="ifaceStorage"><I>mozIStorageStatementParams</I></td></tr>
+    <tr><td port="impl"><B>StatementParams</B></td></tr>
+    <tr><td port="mStatement" bgcolor="2">WEAK mStatement</td></tr></table>>];
+
+
+  rowHolder:mRow -> row;
+  jsObjHolder:mHolder -> xpcWrappedNative;
+  xpcWrappedNative:mFlatJSObject -> params;
+
+  statement:holderP -> paramsHolder:impl;
+  statement:holderR -> rowHolder:impl;
+
+  row:mStatement -> statement:impl;
+  params:mStatement -> statement:impl;
+
+  edge[arrowhead=empty]
+  paramsHolder:impl -> jsObjHolder;
+  row -> wrapperCache;
+}
