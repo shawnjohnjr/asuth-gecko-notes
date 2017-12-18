@@ -1,3 +1,22 @@
+# Actual Notes
+
+## "Persistence" changes
+
+1. Deprecate the persistent type, logging a warning, but still working.
+2. Migrate the database to be default/temporary, rename it if there's a
+   collision.
+
+## Preferences, Privacy and Security.
+
+eSessionOnly means clear-on-shutdown.
+
+## Devtools serviceworkers
+
+:salva interested in being able to tell the upstream source of respondWith as
+displayed in network panel.  If we could show it came from a dynamic stream
+versus a specific Cache.  (AKA what Cache matched?)
+
+
 # Aborted bug comment notes to consider
 For bug 1424459 I had the following thoughts that are too rambly.
 
