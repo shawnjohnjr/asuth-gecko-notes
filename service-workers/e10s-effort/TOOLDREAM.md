@@ -86,6 +86,13 @@ be followed in a somewhat straightforward fashion.  In cases with a state
 machine, some level of interpretation based on when the state variable is
 changed and read would be needed to re-establish the graph.
 
+### callsite argument usage matrix
+
+Think I've proposed this elsewhere or in other forms, but as a concrete
+example, nsContentUtils::InternalStorageAllowedForPrincipal is an interesting
+internal swiss-army knife that gets called with different argument
+configurations.
+
 ## DXR local call graph info w/parameter classification ##
 
 For example, in the case of SpawnWorkerIfNeeded, one of the arguments was

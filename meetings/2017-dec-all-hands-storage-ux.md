@@ -6,6 +6,10 @@
 2. Migrate the database to be default/temporary, rename it if there's a
    collision.
 
+AMENDMENT: As of discussion March 5th with :johannh, and the telemetry
+results logged at https://bugzilla.mozilla.org/show_bug.cgi?id=1442560,
+we will probably go with not performing migration.
+
 ## Preferences, Privacy and Security.
 
 eSessionOnly means clear-on-shutdown.
