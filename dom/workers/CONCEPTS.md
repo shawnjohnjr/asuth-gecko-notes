@@ -57,8 +57,26 @@ bit confused; a lot of things were previously conflated.)
 
 ## Worker Shutdown / Termination ##
 
-ClearMainEventQueue drains the current event queue, running all pending events.
-They do not get canceled!
+### Pending WorkerRunnables
+
+The spec dictates that invoking Close() should clear the event queues and
+prevent further tasks from being enqueued.  We do this.  We invoke Cancel() on
+the runnables.
+
+The mechanism is that existing runnables are canceled via:
+- WorkerPrivate::mCancelAllPendingRunnables gets set to true, which causes
+  WorkerPrivate::AllPendingRunnablesShouldBeCanceled() to return true.
+- WorkerRunnable::Run() checks AllPendingRunnablesShouldBeCanceled() in its
+  (wrapping) Run method, and invokes Cancel() instead of Run().  (There is some
+  sketchy re-entrancy protection, however.)
+- ClearMainEventQueue drains the current event queue by setting
+  mCancelAllPendingRunnables and invoking NS_ProcessPendingEvents() which runs
+  the (opaque) platform event queue machinery so we can clock all the runnables
+  out, canceling them.
+
+And future runnables will fail to dispatch because:
+- WorkerPrivate::DispatchPrivate checks ParentStatus() and errors out if our
+  status isn't Pending or Running.
 
 ## Garbage Collection ##
 
