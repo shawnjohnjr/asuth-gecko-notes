@@ -130,6 +130,20 @@ Does TransactionDatabaseOperationBase's mTransaction hold the database alive?
 
 ## Scheduling
 
+### Connection Pool
+On opening: Due to fallout from the mozStorage API and its desire that a conn
+be opened and closed on the same thread, when IDB opens a database, it actually
+gets opened twice.  See https://bugzilla.mozilla.org/show_bug.cgi?id=1454309#c2
+for a little more context.
+1. On the QuotaManager IO thread, the OpenDatabaseOp performs the initial open.
+2. The ConnectionPool then re-opens on the actual connection pool thread.
+
+#### Data Structures
+mDatabases: Mapping from databaseId to DatabaseInfo struct.
+- Databases added in ConnectionPool::Start, triggered by
+  Database::RecvPBackgroundIDBTransactionConstructor.
+
+#### Method Details
 ConnectionPool
   * Start (...TransactionDatabaseOperationBase)
   * ScheduleTransaction(TransactionInfo, aFromQueuedTransactions)
@@ -192,7 +206,7 @@ ConnectionPool
     * Iterate over all mQueuedTransactions, invoking ScheduleTransaction,
       breaking
 
-
+### Result Events
 Event results in child:
 * DispatchSuccessEvent:
   * (invoked by BackgroundFactoryRequestChild::HandleResponse(overloaded by type),
