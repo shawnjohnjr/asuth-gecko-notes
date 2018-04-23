@@ -2,7 +2,7 @@
 ## Testing Searching
 
 ```
-python router/router.py scratch/config.json
+python router/router.py index/config.json
 ```
 
 ## Testing the indexers
@@ -29,7 +29,7 @@ If you have indexer changes, I then have my dumb forked scripts that are a
 cut-down version of mkindex.sh:
 
 ```
-scripts/crossref-index.sh config scratch/config.json mozilla-central
+scripts/crossref-index.sh config index/config.json mozilla-central
 
-scripts/output-index.sh config scratch/config.json mozilla-central
+scripts/output-index.sh config index/config.json mozilla-central
 ```
