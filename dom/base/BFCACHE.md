@@ -1,3 +1,15 @@
+## Big Picture ##
+
+Windows have 2 interesting bfcache related states:
+- Suspended
+- Frozen
+
+Being in bfcache means being frozen.  Freezing also results in suspending
+the given window.
+
+Beyond freezing, suspending can happen because:
+- A modal dialog is being shown (nsGlobalWindowOuter::EnterModalState)
+- The slow script dialog is being triggered for the window.
 
 ## Important Bits ##
 
