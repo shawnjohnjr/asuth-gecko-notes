@@ -35,7 +35,7 @@ in the parent.
 ### Content Process Shutdown
 
 #### ContentParent
-- each ContentParent::Observe receives "profile-per-change" and:
+- each ContentParent::Observe receives "profile-before-change" and:
   - Sends a "Shutdown" message to its ContentChild via
     `ShutDownProcess(SEND_SHUTDOWN_MESSAGE);` then spins a nested event loop
     until IPC has closed or our timeout mechanism caused us to forcibly kill the
