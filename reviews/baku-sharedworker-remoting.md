@@ -147,6 +147,26 @@
         "ShutdownOnMainThread".
 
 - RemoteWorkerController:
+  - State transitions:
+    - ePending: Initial
+    - ePending -> eReady: CreationSucceeded
+    - ePending -> eTerminated: Shutdown
+    - eReady -> eTerminated: Shutdown
+  - Lifecycle notables:
+    - Creation:
+      - Drain mPendingOps via manual invocation of the op API methods again
+        based on big switch.
+        - Ops are marked completed so that the op constructor doesn't have to
+          do failsafe stuff such as nuke the port.
+    - Shutdown:
+      - Controller mutual pointers nulled out.
+      - mPendingOps cleared: **x**
+      - RemoteWorkerTerminateOp sent.
+  - General op exposed API structure:
+    - If ePending, queue in mPendingOps
+    - If eTerminated, fast return.
+    - Otherwise issue actual send.
+
 
 - RemoteWorkerParent:
 
@@ -226,6 +246,12 @@ Status: marked all but the following as reviewed:
   general mechanics above, so it's just a post-part-8 control flow sanity
   check that's necessary.
 
+**Open questions**:
+- How do we avoid weirdness with the preallocated process?
+  - So, the launch command does use the getorcreate call that will steal the
+    preallocated process.  But it won't be used if it's already been registered?
+  -
+
 
 NB: See "General Mechanics" above for high-level.
 
@@ -253,9 +279,8 @@ Status:
 - Pending comments:
   - RemoteWorkerChild.h:117, references PBackground as owning thread, but that
     probably wants to be "Worker Launcher".  Need to sanity check that.
-- Marked Reviewed: first 6 through PRemooteWorker.ipdl, plus
+- Marked Reviewed: first 6 through PRemoteWorker.ipdl, plus
   RemoteWorkerController.h
-
 
 meta: bunch of consts added.
 
@@ -285,6 +310,8 @@ RemoteWorkerChild.cpp:
   - ConnectMessagePort creates the MessagePort binding for the global, entangles
     it, and dispatches the event.
 
+
+
 RemoteWorkerController.h:
 - private struct Op helper:
   - enum Type has values corresponding to PRemoteWorker.ipdl op structs.
@@ -304,6 +331,19 @@ WorkerPrivate:
 - s/SharedWorkerManager/RemoteWorkerController/.  Set/Get changed, and
   mSharedWorkerManager is now mRemoteWorkerController.
 
+RemoteWorkerManager:
+- GetOrCreate: Asserts background thread, parent process.  Constructor helps
+  ensure singleton.
+- RegisterActor(RemoteServiceWorkerParent): This is a content process reporting
+  in for the ability to spawn workers.  Requests to RWM::Launch where there were
+  no existing actors will have queued their request into mPendings (with sketchy
+  refcount boosting) and triggered a content process launch via
+  RWM::LaunchNewContentProcess.
+- Launch: Goes direct to LaunchInternal if there's a RemoteWorkerService actor
+  available, otherwise mPendings gets involved with addref/release shenanigans
+  and invokes LaunchNewContentProcess with expected async resolution via
+  RegisterActor.
+-
 
 
 Fallout of SharedWorkerManager to WorkerController transition.  These all look
@@ -360,7 +400,7 @@ ContentParent:
 RemoteWorkerParent:
 - Gains Initialize(), invoked by RemoteWorkerManager::LaunchInternal, which
   conditionally invokes the register function if there was a ContentParent.
-  (There is no ContentParent the PBackground child actor is in the same process,
+  (There is no ContentParent if the PBackground child actor is in the same process,
   which means for non-e10s or Chrome-privileged client code.)
   - There is also a ProxyRelease dance because ContentParent isn't thread-safe
     and BackgroundParent::GetContentParent tells a white lie by handing out an
