@@ -1,3 +1,34 @@
+## Meta
+Pref: dom.storage.next_gen
+- true in nightly by ifdef
+- false in rest.
+
+### Disk changes:
+- QuotaManager:
+  - "ls" client:
+    - "data.sqlite" SQLite database.  2 tables, default 1k pages size.
+      - Minimal foo=bar, bar=baz database takes 8k.  Why?  Pages:
+        - 1: sqlite_master
+        - 2: ptrmap pages for incremental_vacuum (implicitly, need to check)
+        - 3: database table
+        - 4: data table
+        - 5: sqlite_autoindex_data_1 for table data
+        - 6: unknown...
+        - 7..8: uh... minimum append size maybe?
+  - in root: "ls-archive.sqlite"
+- Original "webappsstore.sqlite" still gets data updated too.
+
+
+```
+CREATE TABLE database( origin TEXT NOT NULL, last_vacuum_time INTEGER NOT NULL DEFAULT 0, last_analyze_time INTEGER NOT NULL DEFAULT 0, last_vacuum_size INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE data( key TEXT PRIMARY KEY, value TEXT NOT NULL, compressed INTEGER NOT NULL DEFAULT 0, lastAccessTime INTEGER NOT NULL DEFAULT 0);
+```
+
+## New Review
+
+
+## Previous Review
+
 === Part 1
 
 Infra for PushEventQueue, requested additional commment.
@@ -140,4 +171,3 @@ The plan is that ContentParent will trigger the preloading via XPCOM
 w/keepalive.
 
 === quota checks
-

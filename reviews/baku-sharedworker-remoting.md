@@ -1,3 +1,9 @@
+## PENDING SUPER IMPORTANT TO-RESOLVE BITS
+
+- pre-allocated process.  We talked about just not having the service register
+  itself until the process explicitly gets consumed / has its type set.
+- the freeze/thaw logic is still broken.
+
 ## Overall Restating:
 
 ### In-tree documentation
@@ -6,8 +12,75 @@
   - Awesome ASCII art communication diagram with labeled/explained steps.
     Captures all the moving parts concisely.
 
+### Class overviews and relations:
+The order here is roughly the order in which classes will be involved as a
+SharedWorker is created.
+
+- SharedWorker: DOM binding.  Holds a SharedWorkerChild.  Must exist on the main
+  thread because we only allow top-level windows to create SharedWorkers.
+- SharedWorkerChild: Held by SharedWorker bindings to remotely control
+  sharedworker lifecycle and receive error and termination reports.
+- PSharedWorker: Protocol for SharedWorker bindings to communicate with
+  per-worker SharedWorkerManager instances in the parent via SharedWorkerChild/
+  SharedWorkerParent and SharedWorkerService getting/creating the
+  SharedWorkerManager if it doesn't already exist.  Main-thread to PBackground.
+- SharedWorkerParent: PBackground actor that relays life-cycle events
+  (freeze/thaw, suspend/resume, close) to the PBackground SharedWorkerManager
+  and relays error/termination back to the child.
+- SharedWorkerService: PBackground service that creates and tracks the
+  per-worker SharedWorkerManager instances, allowing rendezvous between
+  SharedWorkerParent instances and the SharedWorkerManagers they want to talk to
+  (1:1).
+- SharedWorkerManager: PBackground instance that corresponds to a single logical
+  Shared Worker that exists somewhere in the process tree.  Referenced/owned by
+  multiple SharedWorkerParent instances on the PBackground thread.  Holds/owns
+  a single RemoteWorkerController to interact with the actual shared worker
+  thread, wherever it is located.  Creates the RemoteWorkerController via
+  RemoteWorkerController::Create which uses RemoteWorkerManager::Launch under
+  the hood.
+
+- RemoteWorkerController: PBackground instance created by static
+  RemoteWorkerController::Create that builds on RemoteWorkerManager.  Interface
+  to control the remote worker as well as receive events via the
+  RemoteWorkerObserver interface that the owner (SharedWorkerManager in this
+  case) must implement to hear about errors, termination, and whether the
+  initial spawning succeeded/failed.  Its methods may be called immediately
+  after creation even though the worker is created asynchronously; an internal
+  operation queue makes this work.  Communicates with the remote worker via
+  owned RemoteWorkerParent over PRemoteWorker protocol.
+- RemoteWorkerManager: PBackground instance that keeps tracks of
+  RemoteWorkerServiceParent actors (1 per process, including the main process)
+  and pending RemoteWorkerController requests to spawn remote workers if the
+  spawn request can't be immediately fulfilled.  Decides which
+  RemoteWorkerServerParent to use internally via SelectTargetActor in order to
+  select a BackgroundParent manager on which to create a RemoteWorkerParent.
+- RemoteWorkerService: Every process has a RemoteWorkerService which does the
+  actual spawning of RemoteWorkerChild instances.  The RemoteWorkerService
+  creates a "Worker Launcher" thread at initialization on which it creates a
+  RemoteWorkerServiceChild to service spawn requests.  The thread is exposed as
+  RemoteWorkerService::Thread().  A new/distinct thread is used because we
+  (eventually) don't want to deal with main-thread contention, content processes
+  have no equivalent of a PBackground thread, and actors are bound to specific
+  threads.  (Disclaimer: currently most RemoteWorkerOps need to happen on the
+  main thread because the main-thread ends up as the owner of the worker and
+  all manipulation of the worker must happen from the owning thread.)
+- RemoteWorkerServiceChild: "Worker Launcher"-thread child actor created by the
+  RemoteWorkerService to register itself with the PBackground
+  RemoteWorkerManager in the parent.
+- RemoteWorkerServiceParent: PBackground parent actor that registers with the
+  PBackground RemoteWorkerManager and used to relay spawn requests.
+- RemoteWorkerParent: PBackground-managed parent actor that is mutually
+  associated with a single RemoteWorkerController.  Relays error/close events to
+  the controller and in turns is told life-cycle events.
+- RemoteWorkerChild: PBackground-managed "Worker Launcher"-thread-resident
+  created via the RemoteWorkerManager to actually spawn the worker.  Currently,
+  the worker will be spawned from the main thread due to nsIPrincipal not being
+  able to be created on background threads and other ownership invariants, most
+  of which can be relaxed in the future.
+
 ### RemoteWorker API surface exposed to SharedWorkers / ServiceWorkers
 
+Just RemoteWorkerController::Create.  Very straightforward!
 
 ### General Mechanics
 - IPC ownership idiom is sometimes refcounted with manual forget().take() on
@@ -170,12 +243,13 @@
 
 - RemoteWorkerParent:
 
-- RemoteWorkerChild WorkerState states:
-  - ePending: "CreationSucceeded/CreationFailed not called yet."
-  - ePendingTerminated: "The worker is not created yet, but we want to terminate
-    as soon as possible.
-  - eRunning: "Worker up and running."
-  - eTerminated: "Worker terminated."
+- RemoteWorkerChild
+  - WorkerState states:
+    - ePending: "CreationSucceeded/CreationFailed not called yet."
+    - ePendingTerminated: "The worker is not created yet, but we want to terminate
+      as soon as possible.
+    - eRunning: "Worker up and running."
+    - eTerminated: "Worker terminated."
 
 - Error propagation:
   - PSharedWorker.Error
@@ -225,7 +299,7 @@ Already reviewed, see previous review tracking below.
 ### Part 5:
 Already reviewed, see previous review tracking below.
 
-### Part 6: CSP via IPC
+### Part 6: CSP via IPCz
 Already reviewed by ckershb.
 
 ### Part 7: SharedWorker can be intercepted by a ServiceWorker
@@ -236,8 +310,6 @@ GetInterface for nsINetworkInterceptController.
 
 Moves to RemoteWorkerChild in Part 9.
 
-**where does this get consumed**
-
 ### Part 8: RemoteWorker IPC
 Status: marked all but the following as reviewed:
 - RemoteWorkerController.{h,cpp}
@@ -246,7 +318,7 @@ Status: marked all but the following as reviewed:
   general mechanics above, so it's just a post-part-8 control flow sanity
   check that's necessary.
 
-**Open questions**:
+Questions mooted by proposal on bug:
 - How do we avoid weirdness with the preallocated process?
   - So, the launch command does use the getorcreate call that will steal the
     preallocated process.  But it won't be used if it's already been registered?
@@ -275,12 +347,6 @@ RemoteWorkerService:
 
 
 ### Part 9: RemoteWorker in SharedWorkerManager
-Status:
-- Pending comments:
-  - RemoteWorkerChild.h:117, references PBackground as owning thread, but that
-    probably wants to be "Worker Launcher".  Need to sanity check that.
-- Marked Reviewed: first 6 through PRemoteWorker.ipdl, plus
-  RemoteWorkerController.h
 
 meta: bunch of consts added.
 
@@ -290,9 +356,18 @@ PRemoteWorker.ipdl:
 - to-parent Error(ErrorValue), Close() added.
 - to-child: ExecOp(RemoteWorkerOp) added.
 
+RemoteWorkerTypes.ipdlh refactored to include much of the deleted
+SharedWorkerTypes.ipdlh:
+- ContentSecurityPolicy moved over
+- SharedWorkerLoadInfo's contents largely moved into RemoteWorkerData save for:
+  - windowID and MessagePortIdentifier are now separate arguments in the
+    PBackground constructor for PSharedWorker instances.
+  - RemoteWorkerData gains `isSharedWorker` to distinguish from ServiceWorker.
+- ErrorDataNote/ErrorData/ErrorValue all migrated over.
+
 RemoteWorkerChild.h:
 - Gains RefPtr<WeakWorkerRef> mWorkerRef (which just notices if the worker dies)
-- Also holds RefPtr<WorkerPrivate> mWorkerPrivate **sketchy**
+- Also holds RefPtr<WorkerPrivate> mWorkerPrivate
 - Gains WorkerState ePending/ePendingTerminated/eRunning/eTerminated enum that
   is tracked in mWorkerState that's touched on the owning (Worker Launcher)
   thread only.
@@ -309,7 +384,14 @@ RemoteWorkerChild.cpp:
   ConnectMessagePort.
   - ConnectMessagePort creates the MessagePort binding for the global, entangles
     it, and dispatches the event.
-
+- ExecWorker is responsible for creating the actual worker, and is called by
+  BackgroundChildImpl::RecvPRemoteWorkerConstructor.
+- ExecWorkerOnMainThread is the actual worker spawning logic.  Notable things:
+  - The mStorageAllowed check is `access > StorageAccess::ePrivateBrowsing`
+    which is notably the same as ServiceWorkerPrivate::SpawnWorkerIfNeeded
+    rather than WorkerPrivate's default which is `> StorageAccess::eDeny.`
+    - ePrivateBrowsing is 1 and eDeny is 0.  So this notably forbids storage
+      access to private browsing..
 
 
 RemoteWorkerController.h:
@@ -317,6 +399,7 @@ RemoteWorkerController.h:
   - enum Type has values corresponding to PRemoteWorker.ipdl op structs.
   - state is Type; plus the non-unioned/non-variant payload types:
     MessagePortIdentifier, windowid; plus the completion tracking in a bool.
+    (Variant probably would be preferable...)
   - non-copyable.
 - nsTArray<UniquePtr<Op>> mPendingOps holds the ops.
 RemoteWorkerController.cpp:
@@ -345,6 +428,28 @@ RemoteWorkerManager:
   RegisterActor.
 -
 
+SharedWorker creation plumbing changes:
+- PBackground.ipdl: SharedWorkerLoadInfo changed to RemoteWorkerData, and the
+  windowID and MessagePortIdentifier added.
+- Background{Child,Parent}Impl.{h,cpp}: updated consistent with the above
+- SharedWorkerService.{h,cpp}: ditto, with GetOrCreateWorkerManagerRunnable and
+  WorkerManagerCreatedRunnable gaining the args.
+
+SharedWorkerService.cpp:
+- SharedWorkerManager::MaybeCreateRemoteWorker added, actually triggering the
+  creation of the remove worker.
+
+SharedWorkerManager.{h,cpp}:
+- Gained the new MaybeCreateRemoteWorker method used by SharedWorkerService.
+- Accordingly, the same-process spawning logic is removed that was used by
+  CreateWorkerOnMainThread that was invoked by
+  GetOrCreateWorkerManagerOnMainThread.
+- AddActor gains the "thaw" logic that previously was in
+  SharedWorkerService::GetOrCreateWorkerManagerOnMainThread. **XXX** check move.
+- UpdateSuspend/UpdateFrozen updated to use remoting.
+- SharedWorkerManager::BroadcastErrorToActorsOnMainThread commented out in a
+  TODO.  Fixed in part 10.
+
 
 Fallout of SharedWorkerManager to WorkerController transition.  These all look
 like going from `workerPrivate->GetSharedWorkerManager()->Foo()` to
@@ -353,10 +458,25 @@ like going from `workerPrivate->GetSharedWorkerManager()->Foo()` to
 - RuntimeService: CloseActorsOnMainThread() -> CloseWorkerOnMainThread.
 - WorkerPrivate: BroadcastErrorToActorsOnMainThread ->
   ErrorPropagationOnMainThread
+- WorkerError: same
 
 ### Part 10: RemoteWorkerObserver
 
+SharedWorkerManager.cpp:
+- Dead error reporting and flushing logic code removed.
+- Dead CloseActorsOnMainThread removed.  (Mooted in RuntimeService.cpp in part 9
+  when the logic was changed to use the controller instead of the manager.)
+
+RemoteWorkerController.h:
+- RemoteWorkerObserver added to provide creation results and error/termination
+  reporting.
+
 ### Part 11: selection of RemoteWorker actors
+
+SharedWorkerService.{h,cpp}:
+- base::ProcessId of the originating process added to MaybeCreateRemoteWorker
+SharedWorkerService.cpp:
+- OtherPid of
 
 ### Part 12: Spawning a new process if needed.
 
@@ -465,3 +585,39 @@ Probably want to provide this as a patch to layer on top?
 ```
 
 ```
+
+## Bitrot Fixing:
+All other changes were obvious.
+
+### shared_3.patch
+
+#### deleted hunk transform
+    created = true;
+  } else {
+    // Check whether the secure context state matches.  The current compartment
+    // of aCx is the compartment of the SharedWorker constructor that was
+    // invoked, which is the compartment of the document that will be hooked up
+    // to the worker, so that's what we want to check.
+    shouldAttachToWorkerPrivate =
+      workerPrivate->IsSecureContext() ==
+        JS_GetIsSecureContext(js::GetContextCompartment(aCx));
+##### to
+    created = true;
+  } else {
+    // Check whether the secure context state matches.  The current realm
+    // of aCx is the realm of the SharedWorker constructor that was invoked,
+    // which is the realm of the document that will be hooked up to the worker,
+    // so that's what we want to check.
+    shouldAttachToWorkerPrivate =
+      workerPrivate->IsSecureContext() ==
+        JS::GetIsSecureContext(js::GetContextRealm(aCx));
+
+#### error bubble uses enum now
+    RefPtr<AsyncEventDispatcher> errorEvent =
+      new AsyncEventDispatcher(sharedWorker, NS_LITERAL_STRING("error"), false);
+##### to
+      new AsyncEventDispatcher(sharedWorker,
+                               NS_LITERAL_STRING("error"),
+                               CanBubble::eNo);
+
+#### remote_1
