@@ -1,0 +1,72 @@
+digraph G {
+  newrank = true;
+  rankdir = "TD";
+  fontname = "Sans-Serif";
+  splines = spline;
+
+  node [shape=box, fontname="Sans-Serif", fontsize=10, colorscheme=pastel28];
+  edge [dir=none]
+
+  subgraph cluster_parent {
+    label = "Parent";
+
+    subgraph cluster_p_background {
+        label = "PBackground";
+        RWM [label="RemoteWorkerManager"];
+        RWS1P [label="RemoteWorkerServiceParent"];
+        RWS2P [label="RemoteWorkerServiceParent"];
+        RW1P [label="RemoteWorkerParent", fillcolor=3];
+        RWM -> RWS1P;
+        RWM -> RWS2P;
+    }
+
+    subgraph cluster_p_mainthread {
+        label = "Main Thread";
+        SWMPP [label="ServiceWorkerManager", style=filled, fillcolor=1];
+        SWR [label="ServiceWorkerRegistrar"];
+        SWR -> SWMPP;
+    }
+
+    subgraph cluster_parent_launcherthread {
+        label = "Worker Launcher Thread";
+        RWS1C [label="RemoteWorkerServiceChild"];
+    }
+  }
+
+  subgraph cluster_child1 {
+    label = "Content Child";
+    labeljust = l;
+
+    subgraph cluster_child1_mainthread {
+        label = "Main Thread";
+        EP1 [label="example.com Page", style=filled, fillcolor=3];
+        ESWB [label="SharedWorker binding", style=filled, fillcolor=3];
+        ERWCo1 [label="RemoteWorkerController"];
+        ERWCo1 -> ESWB;
+        ESWB -> EP1;
+    }
+
+    subgraph cluster_child1_launcherthread {
+        label = "Worker Launcher Thread";
+        RWS1C [label="RemoteWorkerServiceChild"];
+        ERWCh1C [label="RemoteWorkerChild", fillcolor=3];
+    }
+
+    subgraph cluster_child1_workerthread {
+        label = "example.com SharedWorker Thread";
+        fillcolor = 3;
+    }
+
+
+
+    SWM1 -> ESW1;
+    EP1 -> SWM1;
+  }
+
+  edge [style=dashed];
+  #SWMS -> SWR [weight=0];
+
+  RWS1P -> RWS1C;
+
+  #{ rank=same; SWMS SWR }
+}

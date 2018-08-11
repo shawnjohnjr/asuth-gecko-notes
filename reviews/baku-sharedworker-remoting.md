@@ -586,7 +586,46 @@ Probably want to provide this as a patch to layer on top?
 
 ```
 
-## Bitrot Fixing:
+## Bitrot Fixing 2-post:
+
+### Looks like a merge ate a LocalStorage broadcast change
+That stuff had been added in approximately the same place.
+
+```
+2:12.74 /home/visbrero/rev_control/hg/mozilla-unified/obj-firefox-debug/ipc/ipdl/_ipdlheaders/mozilla/ipc/PBackgroundChild.h:953:5: note: unimplemented pure virtual method 'RecvDispatchLocalStorageChange' in 'ChildImpl'
+ 2:12.74     RecvDispatchLocalStorageChange(
+ 2:12.74     ^
+ 2:12.74 In file included from /home/visbrero/rev_control/hg/mozilla-unified/obj-firefox-debug/ipc/glue/Unified_cpp_ipc_glue0.cpp:2:
+ 2:12.74 /home/visbrero/rev_control/hg/mozilla-unified/ipc/glue/BackgroundImpl.cpp:945:38: error: allocating an object of abstract class type '(anonymous namespace)::ChildImpl'
+ 2:12.74   RefPtr<ChildImpl> childActor = new ChildImpl();
+ 2:12.74                                      ^
+ 2:12.74 /home/visbrero/rev_control/hg/mozilla-unified/ipc/glue/BackgroundImpl.cpp:1515:39: error: allocating an object of abstract class type '(anonymous namespace)::ChildImpl'
+ 2:12.74   RefPtr<ChildImpl> strongActor = new ChildImpl();
+ 2:12.74                                       ^
+ 2:12.74 1 warning and 2 errors generated.
+```
+
+## Bitrot Fixing 2:
+
+### Part 4
+Running into changes from https://bugzilla.mozilla.org/show_bug.cgi?id=1432010
+
+ReportCompileErrorRunnable moved from WorkerPrivate.cpp to GenericError.cpp
+where it became https://bugzilla.mozilla.org/show_bug.cgi?id=1432010 and so the
+changes in part 4 need to be reflected over.  (Happened in bug 1432010.)
+
+BroadcastErrorToSharedWorkers lost nsresult.  hunk is from bug 1474045. needs
+to be propagated forward to its new location.
+
+### Part 8
+minor collision with :janv's remoteworker changes and the landing of bkelly's
+ServiceWorker actors.
+
+### Part 9
+Another collision in ReportCompileErrorRunnable where the change will need to be
+re-applied.
+
+## Bitrot Fixing 1:
 All other changes were obvious.
 
 ### shared_3.patch
