@@ -26,6 +26,12 @@ CREATE TABLE data( key TEXT PRIMARY KEY, value TEXT NOT NULL, compressed INTEGER
 
 ## New Review
 
+### Oddities to follow up on:
+- Client::TypeMax() replacing TYPE_MAX.
+
+### Tests that we need to ensure exist:
+- Creation of ls-archive.sqlite even if there was no webappsstore.sqlite.
+
 
 ## Previous Review
 

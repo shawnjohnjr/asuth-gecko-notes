@@ -79,7 +79,7 @@ nsIServiceWorkerManager interface
   for all extendable events to complete.
 
 #### nsIServiceWorkerManager
-
+ex
 * register: Used by SWC::register
 * unregister: Used by SWRWorkerThread::Unregister (which uses
   StartUnregisterRunnable to proxy to main thread).
