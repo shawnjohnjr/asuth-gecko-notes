@@ -31,10 +31,21 @@ LocalStorageManager.cpp:
 
 ## dom/localstorage ##
 ActorsChild.h:
+- LSDatabaseChild
+- LSObserverChild
+- LSRequestChild
+- LSSimpleRequestChild
+- LSSnapshotChild
 
 ActorsChild.cpp:
 
 ActorsParent.h:
+- Alloc/Dealloc functions:
+  - LSDatabase
+  - LSObserver
+  - LSRequest
+  - LSSimpleRequest
+- CreateQuotaClient impl
 
 ActorsParent.cpp:
 

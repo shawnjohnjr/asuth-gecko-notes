@@ -3,6 +3,18 @@ Pref: dom.storage.next_gen
 - true in nightly by ifdef
 - false in rest.
 
+### Best Docs
+Overview:
+- LocalStorageCommon.h: Great overview.
+
+
+Protocol:
+- LSDatabase
+  - DeleteMe
+- LSRequest
+  - Cancel
+
+
 ### Disk changes:
 - QuotaManager:
   - "ls" client:

@@ -1,4 +1,4 @@
-## Algorith Flows ##
+## Algorithm Flows ##
 
 * 5.1 Main Fetch can invoke:
   * 5.2 Basic fetch: (own origin && !CORS) || (mode == "no-cors")
